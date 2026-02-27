@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """semacro - explore and expand SELinux policy macros, interfaces, and templates."""
 
+__version__ = "0.2.0"
+
 import argparse
 import os
 import re
@@ -427,6 +429,13 @@ def cmd_lookup(
         print(f"semacro: macro '{macro_name}' not found", file=sys.stderr)
         return 1
 
+    if (rules or expand) and not args:
+        print(
+            f"semacro: warning: no arguments provided — output will contain raw $N references.\n"
+            f"  Try: semacro lookup {'--rules' if rules else '--expand'} \"{macro_name}(type1, type2, ...)\"",
+            file=sys.stderr,
+        )
+
     if rules:
         tree = expand_macro(index, macro_name, args, max_depth=max_depth)
         for rule in collect_leaf_rules(tree):
@@ -477,14 +486,15 @@ def cmd_find(index: dict[str, MacroDef], pattern: str) -> int:
 
 
 _CATEGORY_DIRS = {
-    "kernel":  {"kernel"},
-    "system":  {"system"},
-    "admin":   {"admin"},
-    "apps":    {"apps"},
-    "roles":   {"roles"},
-    "services": {"services"},
-    "contrib": {"contrib"},
-    "support": {"support"},
+    "kernel":      {"kernel"},
+    "system":      {"system"},
+    "admin":       {"admin"},
+    "apps":        {"apps"},
+    "roles":       {"roles"},
+    "services":    {"services"},
+    "contrib":     {"contrib"},
+    "distributed": {"distributed"},
+    "support":     {"support"},
 }
 
 
@@ -539,6 +549,9 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
+        "--version", "-V", action="version", version=f"%(prog)s {__version__}",
+    )
+    parser.add_argument(
         "--no-color", action="store_true",
         help="Disable colored output",
     )
@@ -584,7 +597,7 @@ def main() -> int:
     p_list = sub.add_parser("list", help="List available macros")
     p_list.add_argument(
         "--category", "-c",
-        choices=["kernel", "system", "admin", "apps", "roles", "services", "contrib", "support", "all"],
+        choices=["kernel", "system", "admin", "apps", "roles", "services", "contrib", "distributed", "support", "all"],
         default="all",
         help="Filter by policy category (default: all)",
     )
