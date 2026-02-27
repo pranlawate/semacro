@@ -81,10 +81,22 @@ files_pid_filetrans(ntpd_t, ntpd_var_run_t, file, "ntpd.pid")
     └── type_transition ntpd_t var_run_t:file ntpd_var_run_t "ntpd.pid";
 ```
 
-Control expansion depth with `--depth` (default: 10):
+Control expansion depth with `--depth` (default: 10). Macros beyond the limit show `... (max depth reached)`:
 
 ```
-$ semacro lookup --expand --depth 1 "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)"
+$ semacro lookup --expand --depth 1 "apache_read_log(mysqld_t)"
+apache_read_log(mysqld_t)
+├── logging_search_logs(mysqld_t)
+│   ├── files_search_var(mysqld_t)
+│   │   └── ... (max depth reached)
+│   └── allow mysqld_t var_log_t:dir { getattr search open };
+├── allow mysqld_t httpd_log_t:dir { getattr search open read lock ioctl };
+├── read_files_pattern(mysqld_t, httpd_log_t, httpd_log_t)
+│   ├── allow mysqld_t httpd_log_t:dir { getattr search open };
+│   └── allow mysqld_t httpd_log_t:file { open getattr read ioctl lock };
+└── read_lnk_files_pattern(mysqld_t, httpd_log_t, httpd_log_t)
+    ├── allow mysqld_t httpd_log_t:dir { getattr search open };
+    └── allow mysqld_t httpd_log_t:lnk_file { getattr read };
 ```
 
 ### Flat output (copy-paste ready)
@@ -211,7 +223,8 @@ semacro/
 ├── README.md
 ├── semacro.py          # Main CLI (parser, index, commands)
 ├── Makefile            # Install/uninstall wrapper
-└── CONTRIBUTING.md     # Contributor guidelines
+├── CONTRIBUTING.md     # Contributor guidelines
+└── LICENSE             # MIT license
 ```
 
 ## Development roadmap

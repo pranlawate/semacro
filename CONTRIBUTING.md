@@ -99,10 +99,10 @@ python3 semacro.py lookup -e -r "test(foo)"
 4. Commit with a clear message:
 
 ```bash
-git commit -m "feat: add argument substitution for lookup"
+git commit -s -m "feat: add argument substitution for lookup"
 ```
 
-Follow conventional commit format: `feat:`, `fix:`, `docs:`, `refactor:`.
+Always use `-s` to add your `Signed-off-by` line. Follow conventional commit format: `feat:`, `fix:`, `docs:`, `refactor:`.
 
 ## What to work on
 
