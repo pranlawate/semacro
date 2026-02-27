@@ -358,13 +358,63 @@ def format_tree(node: ExpansionNode, prefix: str = "", is_last: bool = True, is_
     return "\n".join(lines)
 
 
+_AV_RULE = re.compile(
+    r'^(allow|dontaudit|auditallow|neverallow)\s+(\S+)\s+(\S+:\S+)\s+\{([^}]+)\}\s*;$'
+)
+
+
+def collect_leaf_rules(node: ExpansionNode) -> list[str]:
+    """Walk the expansion tree, deduplicate, and merge access vector rules.
+
+    Rules with the same (type, source, target:class) have their permission
+    sets unioned.  Non-AV rules (type_transition, etc.) pass through as-is.
+    """
+    seen: dict[str, None] = {}
+    def _walk(n: ExpansionNode):
+        if n.is_leaf:
+            seen.setdefault(n.text, None)
+        for child in n.children:
+            _walk(child)
+    _walk(node)
+
+    merged_perms: dict[str, dict[str, None]] = {}
+    merged_order: dict[str, int] = {}
+    other: list[tuple[int, str]] = []
+
+    for pos, rule in enumerate(seen):
+        m = _AV_RULE.match(rule)
+        if m:
+            rule_type, source, target_class, perms_str = m.groups()
+            key = f"{rule_type} {source} {target_class}"
+            if key not in merged_perms:
+                merged_perms[key] = {}
+                merged_order[key] = pos
+            for p in perms_str.split():
+                merged_perms[key].setdefault(p, None)
+        else:
+            other.append((pos, rule))
+
+    result: list[tuple[int, str]] = list(other)
+    for key, perms in merged_perms.items():
+        result.append((merged_order[key], f"{key} {{ {' '.join(perms)} }};"))
+    result.sort(key=lambda x: x[0])
+    return [text for _, text in result]
+
+
 # --- Commands ---
 
-def cmd_lookup(index: dict[str, MacroDef], name: str, expand: bool = False, max_depth: int = DEFAULT_MAX_DEPTH) -> int:
+def cmd_lookup(
+    index: dict[str, MacroDef],
+    name: str,
+    expand: bool = False,
+    rules: bool = False,
+    max_depth: int = DEFAULT_MAX_DEPTH,
+) -> int:
     """Look up a macro by exact name and print its definition.
 
     If name contains parentheses, parse as a call and substitute arguments.
     If --expand is set, recursively expand nested macros with tree output.
+    If --rules is set, output flat deduplicated policy rules (copy-paste ready).
     """
     call = parse_call(name)
     if call:
@@ -376,6 +426,12 @@ def cmd_lookup(index: dict[str, MacroDef], name: str, expand: bool = False, max_
     if not macro:
         print(f"semacro: macro '{macro_name}' not found", file=sys.stderr)
         return 1
+
+    if rules:
+        tree = expand_macro(index, macro_name, args, max_depth=max_depth)
+        for rule in collect_leaf_rules(tree):
+            print(rule)
+        return 0
 
     if expand:
         tree = expand_macro(index, macro_name, args, max_depth=max_depth)
@@ -468,7 +524,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         prog="semacro",
         description="Explore and expand SELinux policy macros, interfaces, and templates.",
-        epilog="Policy path resolution (highest priority first):\n"
+        epilog="Examples:\n"
+               "  semacro lookup files_pid_filetrans                          Show raw definition\n"
+               "  semacro lookup \"files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)\"  Substitute args\n"
+               "  semacro lookup -e \"files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)\"  Expand tree\n"
+               "  semacro lookup -r \"files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)\"  Flat rules\n"
+               "  semacro find \"pid_filetrans\"                                Search by pattern\n"
+               "  semacro list --category kernel                              List kernel macros\n"
+               "\n"
+               "Policy path resolution (highest priority first):\n"
                "  1. --include-path flag\n"
                "  2. SEMACRO_INCLUDE_PATH environment variable\n"
                "  3. /usr/share/selinux/devel/include (requires selinux-policy-devel)",
@@ -487,10 +551,29 @@ def main() -> int:
     sub = parser.add_subparsers(dest="command")
 
     # lookup
-    p_lookup = sub.add_parser("lookup", help="Show the definition of a macro")
-    p_lookup.add_argument("name", help="Macro name or call (e.g. files_pid_filetrans or \"files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)\")")
-    p_lookup.add_argument("--expand", "-e", action="store_true", help="Recursively expand nested macros with tree output")
-    p_lookup.add_argument("--depth", "-d", type=int, default=DEFAULT_MAX_DEPTH,
+    p_lookup = sub.add_parser(
+        "lookup",
+        help="Show or expand a macro definition",
+        description="Show a macro definition, optionally with argument substitution and recursive expansion.",
+        epilog="Examples:\n"
+               "  semacro lookup files_pid_filetrans\n"
+               "      Show raw definition with $1, $2, etc.\n\n"
+               "  semacro lookup \"files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)\"\n"
+               "      Show definition with arguments substituted\n\n"
+               "  semacro lookup -e \"files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)\"\n"
+               "      Recursively expand nested macros into a tree of policy rules.\n"
+               "      Permission-set defines (search_dir_perms, etc.) are resolved inline.\n\n"
+               "  semacro lookup -r \"apache_read_log(mysqld_t)\"\n"
+               "      Flat deduplicated policy rules, ready to paste into a .te file.\n\n"
+               "  semacro lookup -e -d 1 \"files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)\"\n"
+               "      Expand only one level deep",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p_lookup.add_argument("name", help="Macro name or call — e.g. files_pid_filetrans or \"files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)\"")
+    mode = p_lookup.add_mutually_exclusive_group()
+    mode.add_argument("-e", "--expand", action="store_true", help="Recursively expand nested macros into a tree of final policy rules")
+    mode.add_argument("-r", "--rules", action="store_true", help="Output flat deduplicated policy rules (copy-paste ready for .te files)")
+    p_lookup.add_argument("-d", "--depth", type=int, default=DEFAULT_MAX_DEPTH,
                           help=f"Max expansion depth (default: {DEFAULT_MAX_DEPTH})")
 
     # find
@@ -553,7 +636,7 @@ def main() -> int:
         )
 
     if args.command == "lookup":
-        return cmd_lookup(index, args.name, expand=args.expand, max_depth=args.depth)
+        return cmd_lookup(index, args.name, expand=args.expand, rules=args.rules, max_depth=args.depth)
     elif args.command == "find":
         return cmd_find(index, args.pattern)
     elif args.command == "list":
