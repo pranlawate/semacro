@@ -10,6 +10,7 @@ SELinux policies use M4 macros extensively. Understanding what a macro actually 
 semacro lookup <name>                          # Show definition (searches interfaces + defines)
 semacro lookup <name> --expand                 # Recursively expand to final policy rules
 semacro lookup "name(arg1, arg2)" --expand     # Expand with argument substitution
+semacro lookup "name(arg1, arg2)" --rules      # Flat policy rules, copy-paste ready for .te files
 semacro find <regex>                           # Search for interfaces/defines matching a pattern
 semacro list [--category kernel|system|all]    # List all available interfaces/templates
 ```
@@ -85,6 +86,21 @@ Control expansion depth with `--depth` (default: 10):
 ```
 $ semacro lookup --expand --depth 1 "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)"
 ```
+
+### Flat output (copy-paste ready)
+
+Use `--rules` to get just the final policy rules — no tree, no color, deduplicated. Ready to paste into a `.te` file:
+
+```
+$ semacro lookup --rules "apache_read_log(mysqld_t)"
+allow mysqld_t var_t:dir { getattr search open };
+allow mysqld_t var_log_t:dir { getattr search open };
+allow mysqld_t httpd_log_t:dir { getattr search open read lock ioctl };
+allow mysqld_t httpd_log_t:file { open getattr read ioctl lock };
+allow mysqld_t httpd_log_t:lnk_file { getattr read };
+```
+
+Rules with the same `(source, target:class)` have their permissions merged automatically, just like the policy compiler does. `--rules` and `--expand` are mutually exclusive — use `--expand` to understand the macro structure, `--rules` to get the final output.
 
 ### Find macros by pattern
 
@@ -220,8 +236,8 @@ semacro/
 - [x] Chained define expansion with nested brace flattening
 
 ### Phase 3 — Polish
-- [ ] `--raw` flag (show unexpanded alongside expanded)
-- [ ] `--flat` flag (plain allow rules, no tree, copy-paste ready)
+- [x] `--rules` / `-r` flag (flat deduplicated policy rules, copy-paste ready)
+- [x] Permission merging — rules with same `(source, target:class)` union their permissions
 - [ ] Bash/Zsh tab completion
 - [ ] Man page
 

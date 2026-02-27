@@ -68,6 +68,10 @@ python3 semacro.py lookup --expand 'files_pid_filetrans(ntpd_t, ntpd_var_run_t, 
 
 # Depth-limited expansion
 python3 semacro.py lookup --expand --depth 1 "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)"
+
+# Flat rules output (copy-paste ready, deduplicated)
+python3 semacro.py lookup --rules "apache_read_log(mysqld_t)"
+python3 semacro.py lookup --rules "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)"
 ```
 
 3. Verify edge cases:
@@ -87,6 +91,9 @@ python3 semacro.py find domtrans | cat
 
 # Expansion without args (shows raw $N references)
 python3 semacro.py lookup --expand files_pid_filetrans
+
+# Mutual exclusion (should error)
+python3 semacro.py lookup -e -r "test(foo)"
 ```
 
 4. Commit with a clear message:
@@ -107,8 +114,7 @@ If you're looking for smaller tasks:
 - Add tests
 - Improve `--help` text for subcommands
 - Handle edge cases in the M4 parser
-- `--raw` flag (show unexpanded alongside expanded)
-- `--flat` flag (plain allow rules, no tree, copy-paste ready)
+- Bash/Zsh tab completion
 
 ## Reporting bugs
 
