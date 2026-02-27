@@ -49,10 +49,25 @@ git checkout -b your-feature
 2. Test your changes against real policy files:
 
 ```bash
+# Basic commands
 python3 semacro.py lookup files_pid_filetrans
 python3 semacro.py find "rw_.*_perms"
 python3 semacro.py list --category kernel | head -10
 python3 semacro.py list --category support | head -10
+
+# Argument substitution
+python3 semacro.py lookup "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)"
+
+# Recursive expansion with define resolution
+python3 semacro.py lookup --expand "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)"
+python3 semacro.py lookup --expand "manage_files_pattern(ntpd_t, ntpd_var_run_t, ntpd_var_run_t)"
+python3 semacro.py lookup --expand "read_files_pattern(ntpd_t, ntpd_conf_t, ntpd_conf_t)"
+
+# Named file transition (4th arg)
+python3 semacro.py lookup --expand 'files_pid_filetrans(ntpd_t, ntpd_var_run_t, file, "ntpd.pid")'
+
+# Depth-limited expansion
+python3 semacro.py lookup --expand --depth 1 "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)"
 ```
 
 3. Verify edge cases:
@@ -69,6 +84,9 @@ python3 semacro.py list | head -5
 
 # No color when piped
 python3 semacro.py find domtrans | cat
+
+# Expansion without args (shows raw $N references)
+python3 semacro.py lookup --expand files_pid_filetrans
 ```
 
 4. Commit with a clear message:
@@ -81,7 +99,7 @@ Follow conventional commit format: `feat:`, `fix:`, `docs:`, `refactor:`.
 
 ## What to work on
 
-Check the **Development roadmap** in the README. Phase 2 (recursive expansion) is the next major milestone.
+Check the **Development roadmap** in the README. Phases 1 and 2 are complete. Phase 3 (polish) is next.
 
 If you're looking for smaller tasks:
 
@@ -89,6 +107,8 @@ If you're looking for smaller tasks:
 - Add tests
 - Improve `--help` text for subcommands
 - Handle edge cases in the M4 parser
+- `--raw` flag (show unexpanded alongside expanded)
+- `--flat` flag (plain allow rules, no tree, copy-paste ready)
 
 ## Reporting bugs
 

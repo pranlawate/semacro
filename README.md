@@ -8,6 +8,8 @@ SELinux policies use M4 macros extensively. Understanding what a macro actually 
 
 ```
 semacro lookup <name>                          # Show definition (searches interfaces + defines)
+semacro lookup <name> --expand                 # Recursively expand to final policy rules
+semacro lookup "name(arg1, arg2)" --expand     # Expand with argument substitution
 semacro find <regex>                           # Search for interfaces/defines matching a pattern
 semacro list [--category kernel|system|all]    # List all available interfaces/templates
 ```
@@ -35,6 +37,53 @@ define search_dir_perms  # support/obj_perm_sets.spt:137
 define(`search_dir_perms',`
 { getattr search open }
 ')
+```
+
+### Argument substitution
+
+Pass arguments inline to see the macro body with `$1`, `$2`, etc. filled in:
+
+```
+$ semacro lookup "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)"
+interface files_pid_filetrans  # modules/kernel/files.if:9312
+interface(`files_pid_filetrans',`
+	gen_require(`
+		type var_t, var_run_t;
+	')
+
+	allow ntpd_t var_t:dir search_dir_perms;
+	filetrans_pattern(ntpd_t, var_run_t, ntpd_var_run_t, file, )
+')
+```
+
+### Recursive expansion
+
+Use `--expand` to recursively expand nested macros into a tree of final policy rules. Define macros (permission sets like `search_dir_perms`) are automatically resolved to their actual values:
+
+```
+$ semacro lookup --expand "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)"
+files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)
+├── allow ntpd_t var_t:dir { getattr search open };
+└── filetrans_pattern(ntpd_t, var_run_t, ntpd_var_run_t, file, )
+    ├── allow ntpd_t var_run_t:dir { open read getattr lock search ioctl add_name remove_name write };
+    └── type_transition ntpd_t var_run_t:file ntpd_var_run_t ;
+```
+
+Named file transitions (4th argument constrains the filename):
+
+```
+$ semacro lookup --expand 'files_pid_filetrans(ntpd_t, ntpd_var_run_t, file, "ntpd.pid")'
+files_pid_filetrans(ntpd_t, ntpd_var_run_t, file, "ntpd.pid")
+├── allow ntpd_t var_t:dir { getattr search open };
+└── filetrans_pattern(ntpd_t, var_run_t, ntpd_var_run_t, file, "ntpd.pid")
+    ├── allow ntpd_t var_run_t:dir { open read getattr lock search ioctl add_name remove_name write };
+    └── type_transition ntpd_t var_run_t:file ntpd_var_run_t "ntpd.pid";
+```
+
+Control expansion depth with `--depth` (default: 10):
+
+```
+$ semacro lookup --expand --depth 1 "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)"
 ```
 
 ### Find macros by pattern
@@ -137,7 +186,7 @@ The existing tools in the SELinux ecosystem have gaps for interactive macro expl
 | [`macro-expander`](https://github.com/fedora-selinux/macro-expander) | Expand to final allow rules via M4 | No tree output, no lookup/search, needs build toolchain |
 | `sepolicy interface` | List interfaces, show descriptions | No macro body, no defines, no expansion |
 
-`semacro` fills the gap: **show the definition, search the catalog, and (planned) expand step-by-step with a tree view** — all without requiring the policy build toolchain.
+`semacro` fills the gap: **show the definition, search the catalog, and expand step-by-step with a tree view** — all without requiring the policy build toolchain.
 
 ## Project structure
 
@@ -160,13 +209,15 @@ semacro/
 - [x] Color output (auto-disabled when piped)
 - [x] Error handling, input validation, incomplete install warnings
 
-### Phase 2 — Recursive expansion
-- [ ] Parse macro call syntax into name + arguments
-- [ ] `$1`, `$2`, `$3` argument substitution
-- [ ] Recursive expansion of nested macros
-- [ ] Tree-formatted output
-- [ ] `--expand` flag
-- [ ] Depth limit to prevent infinite recursion
+### Phase 2 — Recursive expansion ✅
+- [x] Parse macro call syntax into name + arguments
+- [x] `$1`, `$2`, `$3` argument substitution (unset args → empty string, matching M4)
+- [x] Recursive expansion of nested macros
+- [x] Tree-formatted output with box-drawing characters
+- [x] `--expand` / `-e` flag
+- [x] `--depth` / `-d` flag to limit recursion depth
+- [x] Define resolution — permission sets (`search_dir_perms`, etc.) expanded inline
+- [x] Chained define expansion with nested brace flattening
 
 ### Phase 3 — Polish
 - [ ] `--raw` flag (show unexpanded alongside expanded)
