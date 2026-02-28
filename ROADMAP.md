@@ -2,11 +2,11 @@
 
 Planned features and future directions. Phases 1-3 are tracked in the [README](README.md).
 
-## Phase 3 — Polish (in progress)
+## Phase 3 — Polish ✅
 
-- [ ] Bash/Zsh tab completion for subcommands and macro names
-- [ ] Man page (`man semacro`)
-- [ ] RPM spec and packaging (`dnf install semacro`)
+- [x] Bash/Zsh tab completion for subcommands, flags, and categories
+- [x] Man page (`man semacro`)
+- [x] RPM spec and packaging (`semacro.spec`)
 
 ## Phase 4 — Analysis commands
 

@@ -22,11 +22,16 @@ python3 semacro.py find "rw_.*_perms"
 ## Project layout
 
 ```
-semacro.py       # Everything lives here — parser, index, commands, CLI
-Makefile         # Install/uninstall wrapper to ~/bin
-README.md        # User-facing documentation
-ROADMAP.md       # Planned features (Phases 4+)
-CONTRIBUTING.md  # This file
+semacro.py              # Everything lives here — parser, index, commands, CLI
+semacro.1               # Man page (troff)
+semacro.spec            # RPM spec file
+completions/
+  semacro.bash          # Bash tab completion
+  semacro.zsh           # Zsh tab completion
+Makefile                # Install wrapper, completions, man page
+README.md               # User-facing documentation
+ROADMAP.md              # Planned features (Phases 4+)
+CONTRIBUTING.md         # This file
 ```
 
 semacro is intentionally a single-file tool with no dependencies beyond the Python 3.9+ standard library. Keep it that way unless there's a strong reason not to.
@@ -114,7 +119,7 @@ If you're looking for smaller tasks:
 - Improve error messages
 - Add tests
 - Handle edge cases in the M4 parser
-- Bash/Zsh tab completion
+- Improve tab completion (e.g. macro name completion with caching)
 
 ## Reporting bugs
 

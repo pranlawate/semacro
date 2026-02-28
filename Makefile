@@ -1,6 +1,10 @@
-.PHONY: help install install-wrapper install-wrapper-user uninstall-wrapper clean
+.PHONY: help install install-wrapper install-wrapper-user install-completions \
+       install-man uninstall-wrapper clean
 
 SCRIPT_DIR = $(shell pwd)
+BASH_COMPLETION_DIR ?= /etc/bash_completion.d
+ZSH_COMPLETION_DIR  ?= /usr/share/zsh/site-functions
+MANDIR              ?= /usr/share/man/man1
 
 help:
 	@echo "=== semacro ==="
@@ -8,6 +12,8 @@ help:
 	@echo "Setup:"
 	@echo "  install              - Install wrapper (interactive: /usr/local/bin or ~/bin)"
 	@echo "  install-wrapper-user - Install wrapper to ~/bin (non-interactive)"
+	@echo "  install-completions  - Install bash/zsh tab completions (requires sudo)"
+	@echo "  install-man          - Install man page (requires sudo)"
 	@echo "  uninstall-wrapper    - Remove wrapper scripts"
 	@echo "  clean                - Remove generated files"
 
@@ -70,6 +76,19 @@ uninstall-wrapper:
 	@sudo rm -f /usr/local/bin/semacro 2>/dev/null || echo "  (skipped /usr/local/bin - no sudo access or not found)"
 	@rm -f ~/bin/semacro 2>/dev/null || echo "  (~/bin/semacro not found)"
 	@echo "Wrapper removal complete"
+
+install-completions:
+	@echo "Installing shell completions..."
+	sudo install -Dm644 completions/semacro.bash $(BASH_COMPLETION_DIR)/semacro
+	sudo install -Dm644 completions/semacro.zsh  $(ZSH_COMPLETION_DIR)/_semacro
+	@echo "Bash completion installed to $(BASH_COMPLETION_DIR)/semacro"
+	@echo "Zsh  completion installed to $(ZSH_COMPLETION_DIR)/_semacro"
+
+install-man:
+	@echo "Installing man page..."
+	sudo install -Dm644 semacro.1 $(MANDIR)/semacro.1
+	sudo gzip -f $(MANDIR)/semacro.1
+	@echo "Man page installed to $(MANDIR)/semacro.1.gz"
 
 clean:
 	@rm -rf __pycache__ *.pyc

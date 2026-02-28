@@ -167,6 +167,37 @@ make install-wrapper-user
 make install
 ```
 
+### Tab completion and man page
+
+```bash
+# Install bash/zsh tab completion (requires sudo)
+make install-completions
+
+# Install the man page
+make install-man
+```
+
+After installing completions, open a new shell or run `source /etc/bash_completion.d/semacro` for Bash. Zsh picks up completions from `$fpath` automatically.
+
+### RPM package (Fedora/RHEL/CentOS)
+
+Build and install as an RPM:
+
+```bash
+# Create a source tarball
+tar czf ~/rpmbuild/SOURCES/semacro-0.2.0.tar.gz --transform='s,^,semacro-0.2.0/,' \
+    semacro.py semacro.1 semacro.spec completions/ Makefile \
+    README.md CONTRIBUTING.md ROADMAP.md LICENSE
+
+# Build the RPM
+rpmbuild -ba semacro.spec
+
+# Install
+sudo dnf install ~/rpmbuild/RPMS/noarch/semacro-0.2.0-1.*.noarch.rpm
+```
+
+The RPM installs the wrapper to `/usr/bin/semacro`, the man page, and bash/zsh completions.
+
 ### Configuring the policy path
 
 semacro needs access to the SELinux policy `.if` and `.spt` files. It checks these sources in order:
@@ -220,10 +251,15 @@ The existing tools in the SELinux ecosystem have gaps for interactive macro expl
 
 ```
 semacro/
+├── semacro.py          # Main CLI (parser, index, commands)
+├── semacro.1           # Man page (troff)
+├── semacro.spec        # RPM spec file
+├── completions/
+│   ├── semacro.bash    # Bash tab completion
+│   └── semacro.zsh     # Zsh tab completion
+├── Makefile            # Install wrapper, completions, man page
 ├── README.md
 ├── ROADMAP.md          # Planned features (Phases 4+)
-├── semacro.py          # Main CLI (parser, index, commands)
-├── Makefile            # Install/uninstall wrapper
 ├── CONTRIBUTING.md     # Contributor guidelines
 └── LICENSE             # MIT license
 ```
@@ -249,12 +285,12 @@ semacro/
 - [x] Define resolution — permission sets (`search_dir_perms`, etc.) expanded inline
 - [x] Chained define expansion with nested brace flattening
 
-### Phase 3 — Polish (in progress)
+### Phase 3 — Polish ✅
 - [x] `--rules` / `-r` flag (flat deduplicated policy rules, copy-paste ready)
 - [x] Permission merging — rules with same `(source, target:class)` union their permissions
-- [ ] Bash/Zsh tab completion
-- [ ] Man page
-- [ ] RPM packaging
+- [x] Bash/Zsh tab completion
+- [x] Man page (`man semacro`)
+- [x] RPM packaging (`semacro.spec`)
 
 See [ROADMAP.md](ROADMAP.md) for planned features beyond Phase 3.
 

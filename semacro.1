@@ -1,0 +1,159 @@
+.\" semacro.1 -- man page for semacro
+.TH SEMACRO 1 "2026-02-27" "semacro 0.2.0" "SELinux Policy Tools"
+.SH NAME
+semacro \- explore and expand SELinux policy macros, interfaces, and templates
+.SH SYNOPSIS
+.B semacro
+.RB [ \-\-no\-color ]
+.RB [ \-\-include\-path
+.IR DIR ]
+.I command
+.RI [ options ]
+.SH DESCRIPTION
+.B semacro
+parses the SELinux reference\-policy macro library and provides quick
+lookup, search, and recursive expansion of interfaces, templates, and
+defines.
+It reads
+.B .if
+and
+.B .spt
+files from the policy include tree and builds an in\-memory index.
+.PP
+Unlike the raw M4 source, semacro can substitute arguments into macro
+bodies, recursively expand nested calls into a tree of final policy
+rules, and output flat copy\-paste\-ready rules for use in
+.B .te
+policy files.
+.SH GLOBAL OPTIONS
+.TP
+.B \-\-no\-color
+Disable colored output.
+Color is also disabled automatically when stdout is not a terminal.
+.TP
+.BI \-\-include\-path " DIR"
+Path to the SELinux policy include directory.
+Overrides the
+.B SEMACRO_INCLUDE_PATH
+environment variable and auto\-detection.
+.TP
+.BR \-V ", " \-\-version
+Print the version and exit.
+.TP
+.BR \-h ", " \-\-help
+Print usage information and exit.
+.SH COMMANDS
+.SS lookup \fINAME\fR
+Show the definition of a macro.
+.I NAME
+may be a bare macro name (e.g.\&
+.BR files_pid_filetrans )
+or a full call with arguments (e.g.\&
+.BR "\(dqfiles_pid_filetrans(ntpd_t, ntpd_var_run_t, file)\(dq" ).
+When arguments are supplied, positional parameters
+.RB ( $1 ", " $2 ", \&...")
+are substituted into the body.
+.PP
+Options:
+.TP
+.BR \-e ", " \-\-expand
+Recursively expand nested macro calls into a tree of final policy
+rules.
+Permission\-set defines
+.RB ( search_dir_perms ", " read_file_perms ", " etc.)
+are resolved inline.
+Mutually exclusive with
+.BR \-r .
+.TP
+.BR \-r ", " \-\-rules
+Output flat, deduplicated policy rules suitable for pasting directly
+into a
+.B .te
+file.
+Access\-vector rules with the same source, target, and class are merged.
+Mutually exclusive with
+.BR \-e .
+.TP
+.BI \-d " N" "\fR, " \-\-depth " N"
+Limit expansion depth (default: 10).
+.SS find \fIPATTERN\fR
+Search for macros whose name matches the Python regular expression
+.IR PATTERN .
+.SS list
+List all indexed macros.
+.TP
+.BR \-c " \fICATEGORY\fR, " \-\-category " \fICATEGORY\fR"
+Filter by policy category.
+Valid values:
+.BR kernel ", " system ", " admin ", " apps ", " roles ", "
+.BR services ", " contrib ", " distributed ", " support ", " all
+(default:
+.BR all ).
+.SH EXAMPLES
+Look up a macro definition:
+.PP
+.RS 4
+.EX
+semacro lookup files_pid_filetrans
+.EE
+.RE
+.PP
+Substitute arguments:
+.PP
+.RS 4
+.EX
+semacro lookup "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)"
+.EE
+.RE
+.PP
+Expand into a full policy rule tree:
+.PP
+.RS 4
+.EX
+semacro lookup \-e "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)"
+.EE
+.RE
+.PP
+Get flat rules for pasting into a \fB.te\fR file:
+.PP
+.RS 4
+.EX
+semacro lookup \-r "apache_read_log(mysqld_t)"
+.EE
+.RE
+.PP
+Search for macros matching a pattern:
+.PP
+.RS 4
+.EX
+semacro find "pid_filetrans"
+.EE
+.RE
+.PP
+List macros in the kernel category:
+.PP
+.RS 4
+.EX
+semacro list \-c kernel
+.EE
+.RE
+.SH ENVIRONMENT
+.TP
+.B SEMACRO_INCLUDE_PATH
+Path to the SELinux reference\-policy include directory.
+If not set, semacro tries
+.I /usr/share/selinux/devel/include
+(from
+.BR selinux\-policy\-devel ).
+.SH FILES
+.TP
+.I /usr/share/selinux/devel/include/
+Default policy include directory (provided by
+.BR selinux\-policy\-devel ).
+.SH SEE ALSO
+.BR selinux (8),
+.BR semodule (8),
+.BR m4 (1),
+.BR sesearch (1)
+.SH AUTHOR
+Pranav Lawate
