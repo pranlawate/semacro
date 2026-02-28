@@ -54,7 +54,7 @@ chmod 755 %{buildroot}%{_bindir}/semacro
 * Fri Feb 27 2026 Pranav Lawate <pran.lawate@gmail.com> - 0.2.0-2
 - Add semacro callers for reverse macro lookup
 - Add semacro which for rule-to-macro search (AV rules and type_transitions)
-- Add semacro expand for expanding all macros in a .te file
+- Add semacro telookup for expanding all macros in a .te file
 - Add stdin pipe support for lookup, find, deps
 
 * Fri Feb 27 2026 Pranav Lawate <pran.lawate@gmail.com> - 0.2.0-1

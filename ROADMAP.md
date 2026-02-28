@@ -12,7 +12,7 @@ Planned features and future directions. Phases 1-5 are tracked in the [README](R
 
 - [x] `semacro callers <macro>` — reverse lookup (find direct callers)
 - [x] `semacro which <source> <target> <perm>` — rule-to-macro search (AV rules and type_transitions)
-- [x] `semacro expand <file.te>` — expand all macros in a policy module
+- [x] `semacro telookup <file.te>` — expand all macros in a policy module
 
 ## Phase 5 — Visualization and extras ✅
 

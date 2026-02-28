@@ -125,7 +125,7 @@ Filter by object class (e.g.\&
 .BI \-N " FILENAME" "\fR, " \-\-name " FILENAME"
 Filter by named transition filename (only with
 .BR \-T ).
-.SS expand \fIFILEPATH\fR
+.SS telookup \fIFILEPATH\fR
 Read a
 .B .te
 file, expand every macro call, and output the full set of final
@@ -252,7 +252,7 @@ Expand all macros in a policy module:
 .PP
 .RS 4
 .EX
-semacro expand myapp.te
+semacro telookup myapp.te
 .EE
 .RE
 .PP

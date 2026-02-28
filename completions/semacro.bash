@@ -6,14 +6,14 @@ _semacro() {
     local cur prev words cword
     _init_completion || return
 
-    local subcommands="lookup find list callers which expand deps init"
+    local subcommands="lookup find list callers which telookup deps init"
     local global_opts="--no-color --include-path --version --help"
     local lookup_opts="-e --expand -r --rules -d --depth --help"
     local find_opts="--help"
     local list_opts="-c --category --help"
     local callers_opts="--help"
     local which_opts="-T --transition -C --class -N --name --help"
-    local expand_opts="-d --depth -t --tree --help"
+    local telookup_opts="-d --depth -t --tree --help"
     local deps_opts="-m --mermaid -d --depth --help"
     local init_opts="-o --output-dir --help"
     local categories="kernel system admin apps roles services contrib distributed support all"
@@ -23,7 +23,7 @@ _semacro() {
     local i
     for ((i=1; i < cword; i++)); do
         case "${words[i]}" in
-            lookup|find|list|callers|which|expand|deps|init)
+            lookup|find|list|callers|which|telookup|deps|init)
                 subcmd="${words[i]}"
                 break
                 ;;
@@ -36,8 +36,8 @@ _semacro() {
         return
     fi
 
-    # Complete path after --include-path
-    if [[ "$prev" == "--include-path" ]]; then
+    # Complete path after --include-path or --output-dir / -o
+    if [[ "$prev" == "--include-path" || "$prev" == "--output-dir" || "$prev" == "-o" ]]; then
         _filedir -d
         return
     fi
@@ -47,8 +47,20 @@ _semacro() {
         return
     fi
 
-    # Complete .te files for expand command
-    if [[ "$subcmd" == "expand" && "$cur" != -* ]]; then
+    # Complete object class after --class / -C
+    if [[ "$prev" == "--class" || "$prev" == "-C" ]]; then
+        local classes="file dir lnk_file sock_file fifo_file chr_file blk_file process"
+        COMPREPLY=($(compgen -W "$classes" -- "$cur"))
+        return
+    fi
+
+    # Free-form filename after --name / -N
+    if [[ "$prev" == "--name" || "$prev" == "-N" ]]; then
+        return
+    fi
+
+    # Complete .te files for telookup command
+    if [[ "$subcmd" == "telookup" && "$cur" != -* ]]; then
         _filedir te
         return
     fi
@@ -79,9 +91,9 @@ _semacro() {
                 COMPREPLY=($(compgen -W "$which_opts" -- "$cur"))
             fi
             ;;
-        expand)
+        telookup)
             if [[ "$cur" == -* ]]; then
-                COMPREPLY=($(compgen -W "$expand_opts" -- "$cur"))
+                COMPREPLY=($(compgen -W "$telookup_opts" -- "$cur"))
             fi
             ;;
         deps)

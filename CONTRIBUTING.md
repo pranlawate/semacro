@@ -29,7 +29,7 @@ completions/
   semacro.bash          # Bash tab completion
   semacro.zsh           # Zsh tab completion
 tests/
-  myapp.te              # Test fixture for semacro expand
+  myapp.te              # Test fixture for semacro telookup
 Makefile                # Install wrapper, completions, man page
 README.md               # User-facing documentation
 ROADMAP.md              # Future directions
@@ -92,8 +92,8 @@ python3 semacro.py which ntpd_t httpd_log_t "read write" --class file
 python3 semacro.py which -T ntpd_t var_run_t ntpd_var_run_t
 
 # Expand a .te file
-python3 semacro.py expand /path/to/ntp.te
-python3 semacro.py expand -t /path/to/ntp.te
+python3 semacro.py telookup /path/to/ntp.te
+python3 semacro.py telookup -t /path/to/ntp.te
 
 # Dependency graph
 python3 semacro.py deps files_pid_filetrans

@@ -16,7 +16,7 @@ semacro list [--category kernel|system|all]    # List all available interfaces/t
 semacro callers <macro>                        # Reverse lookup — who calls this macro?
 semacro which <source> <target> <perm>         # Find macro granting specific access
 semacro which -T <source> <parent> <new_type>  # Find macro creating a type_transition
-semacro expand <file.te>                       # Expand all macros in a .te file
+semacro telookup <file.te>                     # Expand all macros in a .te file
 semacro deps <macro>                           # Dependency graph (DOT or Mermaid)
 semacro init <name>                            # Generate .te/.if/.fc policy skeleton
 ```
@@ -199,7 +199,7 @@ $ semacro which -T ntpd_t var_run_t ntpd_var_run_t
 ### Expand an entire .te file
 
 ```
-$ semacro expand myapp.te
+$ semacro telookup myapp.te
 allow myapp_t var_t:dir { getattr search open };
 allow myapp_t myapp_log_t:file { open read write append getattr };
 type_transition myapp_t var_run_t:file myapp_var_run_t ;
@@ -357,7 +357,7 @@ semacro/
 │   ├── semacro.bash    # Bash tab completion
 │   └── semacro.zsh     # Zsh tab completion
 ├── tests/
-│   └── myapp.te        # Test fixture for semacro expand
+│   └── myapp.te        # Test fixture for semacro telookup
 ├── Makefile            # Install wrapper, completions, man page
 ├── README.md
 ├── ROADMAP.md          # Future directions
@@ -396,7 +396,7 @@ semacro/
 ### Phase 4 — Analysis commands ✅
 - [x] `semacro callers` — reverse lookup (find which macros call a given macro)
 - [x] `semacro which` — rule-to-macro search (AV rules and type_transitions)
-- [x] `semacro expand` — expand all macros in a `.te` file to final policy rules
+- [x] `semacro telookup` — expand all macros in a `.te` file to final policy rules
 
 ### Phase 5 — Visualization and extras ✅
 - [x] `semacro deps` — dependency graph in DOT (Graphviz) and Mermaid format

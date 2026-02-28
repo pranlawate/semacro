@@ -741,7 +741,7 @@ _RULE_STATEMENT = re.compile(
 _TYPE_DECL = re.compile(r'^\s*(type|attribute|typeattribute|typealias|bool|role)\s')
 
 
-def cmd_expand_file(
+def cmd_telookup(
     index: dict[str, MacroDef],
     filepath: str,
     max_depth: int = DEFAULT_MAX_DEPTH,
@@ -1003,7 +1003,7 @@ def main() -> int:
                "  semacro list --category kernel                              List kernel macros\n"
                "  semacro callers filetrans_pattern                           Reverse lookup\n"
                "  semacro which ntpd_t httpd_log_t read                       Find granting macro\n"
-               "  semacro expand myapp.te                                     Expand a .te file\n"
+               "  semacro telookup myapp.te                                   Expand a .te file\n"
                "  semacro deps files_pid_filetrans                             Dependency graph\n"
                "  semacro init myapp                                          Policy skeleton\n"
                "\n"
@@ -1113,26 +1113,26 @@ def main() -> int:
     p_which.add_argument("-N", "--name", dest="trans_name", metavar="FILENAME",
                          help="Filter by named transition filename (only with -T)")
 
-    # expand
-    p_expand = sub.add_parser(
-        "expand",
+    # telookup
+    p_telookup = sub.add_parser(
+        "telookup",
         help="Expand all macros in a .te policy file",
         description="Read a .te file, expand every macro call, and output the full set "
                     "of final policy rules.",
         epilog="Examples:\n"
-               "  semacro expand myapp.te\n"
+               "  semacro telookup myapp.te\n"
                "      Output flat merged rules for the module\n\n"
-               "  semacro expand -t myapp.te\n"
+               "  semacro telookup -t myapp.te\n"
                "      Output expansion trees for each macro call\n\n"
-               "  cat myapp.te | semacro expand -\n"
+               "  cat myapp.te | semacro telookup -\n"
                "      Read from stdin",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p_expand.add_argument("filepath", help="Path to .te file (use - for stdin)")
-    p_expand.add_argument("-d", "--depth", type=int, default=DEFAULT_MAX_DEPTH,
-                          help=f"Max expansion depth (default: {DEFAULT_MAX_DEPTH})")
-    p_expand.add_argument("-t", "--tree", action="store_true",
-                          help="Output expansion trees instead of flat rules")
+    p_telookup.add_argument("filepath", help="Path to .te file (use - for stdin)")
+    p_telookup.add_argument("-d", "--depth", type=int, default=DEFAULT_MAX_DEPTH,
+                            help=f"Max expansion depth (default: {DEFAULT_MAX_DEPTH})")
+    p_telookup.add_argument("-t", "--tree", action="store_true",
+                            help="Output expansion trees instead of flat rules")
 
     # deps
     p_deps = sub.add_parser(
@@ -1249,12 +1249,12 @@ def main() -> int:
         return cmd_which(index, args.source, args.target, args.third,
                          transition=args.transition, obj_class=args.obj_class,
                          trans_name=args.trans_name)
-    elif args.command == "expand":
+    elif args.command == "telookup":
         if args.depth < 1:
             print("semacro: --depth must be at least 1", file=sys.stderr)
             return 1
-        return cmd_expand_file(index, args.filepath, max_depth=args.depth,
-                               tree_mode=args.tree)
+        return cmd_telookup(index, args.filepath, max_depth=args.depth,
+                            tree_mode=args.tree)
     elif args.command == "deps":
         name = _read_arg(args.name, "deps")
         if name is None:

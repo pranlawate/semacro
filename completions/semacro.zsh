@@ -10,7 +10,7 @@ subcommands=(
     'list:List available macros'
     'callers:Find which macros call a given macro'
     'which:Find macros that grant a specific access'
-    'expand:Expand all macros in a .te policy file'
+    'telookup:Expand all macros in a .te policy file'
     'deps:Show macro dependency graph in DOT or Mermaid format'
     'init:Generate starter .te/.if/.fc files for a new policy module'
 )
@@ -56,7 +56,7 @@ _semacro_which() {
         ':permission or new type'
 }
 
-_semacro_expand() {
+_semacro_telookup() {
     _arguments \
         {-d,--depth}'[Max expansion depth]:depth' \
         '(-t --tree)'{-t,--tree}'[Output expansion trees instead of flat rules]' \
@@ -98,7 +98,7 @@ case "$state" in
             list)    _semacro_list ;;
             callers) _semacro_callers ;;
             which)   _semacro_which ;;
-            expand)  _semacro_expand ;;
+            telookup) _semacro_telookup ;;
             deps)    _semacro_deps ;;
             init)    _semacro_init ;;
         esac
