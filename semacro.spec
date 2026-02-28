@@ -1,6 +1,6 @@
 Name:           semacro
 Version:        0.2.0
-Release:        1%{?dist}
+Release:        3%{?dist}
 Summary:        Explore and expand SELinux policy macros, interfaces, and templates
 
 License:        MIT
@@ -57,7 +57,7 @@ chmod 755 %{buildroot}%{_bindir}/semacro
 - Add semacro expand for expanding all macros in a .te file
 - Add stdin pipe support for lookup, find, deps
 
-* Thu Feb 27 2026 Pranav Lawate <pran.lawate@gmail.com> - 0.2.0-1
+* Fri Feb 27 2026 Pranav Lawate <pran.lawate@gmail.com> - 0.2.0-1
 - Add --expand and --rules flags for recursive expansion and flat rule output
 - Add bash/zsh tab completion
 - Add man page
@@ -65,5 +65,5 @@ chmod 755 %{buildroot}%{_bindir}/semacro
 - Permission-set defines resolved inline during expansion
 - AV rule merging for --rules output
 
-* Mon Feb 24 2026 Pranav Lawate <pran.lawate@gmail.com> - 0.1.0-1
+* Tue Feb 24 2026 Pranav Lawate <pran.lawate@gmail.com> - 0.1.0-1
 - Initial package: lookup, find, list subcommands

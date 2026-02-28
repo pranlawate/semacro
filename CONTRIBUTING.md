@@ -28,10 +28,13 @@ semacro.spec            # RPM spec file
 completions/
   semacro.bash          # Bash tab completion
   semacro.zsh           # Zsh tab completion
+tests/
+  myapp.te              # Test fixture for semacro expand
 Makefile                # Install wrapper, completions, man page
 README.md               # User-facing documentation
 ROADMAP.md              # Future directions
 CONTRIBUTING.md         # This file
+LICENSE                 # MIT license
 ```
 
 semacro is intentionally a single-file tool with no dependencies beyond the Python 3.9+ standard library. Keep it that way unless there's a strong reason not to.

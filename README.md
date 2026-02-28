@@ -292,7 +292,7 @@ tar czf ~/rpmbuild/SOURCES/semacro-0.2.0.tar.gz --transform='s,^,semacro-0.2.0/,
 rpmbuild -ba semacro.spec
 
 # Install
-sudo dnf install ~/rpmbuild/RPMS/noarch/semacro-0.2.0-1.*.noarch.rpm
+sudo dnf install ~/rpmbuild/RPMS/noarch/semacro-0.2.0-3.*.noarch.rpm
 ```
 
 The RPM installs the wrapper to `/usr/bin/semacro`, the man page, and bash/zsh completions.
@@ -356,6 +356,8 @@ semacro/
 ├── completions/
 │   ├── semacro.bash    # Bash tab completion
 │   └── semacro.zsh     # Zsh tab completion
+├── tests/
+│   └── myapp.te        # Test fixture for semacro expand
 ├── Makefile            # Install wrapper, completions, man page
 ├── README.md
 ├── ROADMAP.md          # Future directions
