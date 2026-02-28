@@ -4,7 +4,7 @@ Release:        1%{?dist}
 Summary:        Explore and expand SELinux policy macros, interfaces, and templates
 
 License:        MIT
-URL:            https://github.com/pranavlawate/semacro
+URL:            https://github.com/pranlawate/semacro
 Source0:        %{name}-%{version}.tar.gz
 
 BuildArch:      noarch
@@ -47,6 +47,16 @@ chmod 755 %{buildroot}%{_bindir}/semacro
 %{_datadir}/zsh/site-functions/_semacro
 
 %changelog
+* Fri Feb 27 2026 Pranav Lawate <pran.lawate@gmail.com> - 0.2.0-3
+- Add semacro deps for dependency graphs in DOT and Mermaid format
+- Add semacro init for policy skeleton generation (.te/.if/.fc)
+
+* Fri Feb 27 2026 Pranav Lawate <pran.lawate@gmail.com> - 0.2.0-2
+- Add semacro callers for reverse macro lookup
+- Add semacro which for rule-to-macro search (AV rules and type_transitions)
+- Add semacro expand for expanding all macros in a .te file
+- Add stdin pipe support for lookup, find, deps
+
 * Thu Feb 27 2026 Pranav Lawate <pran.lawate@gmail.com> - 0.2.0-1
 - Add --expand and --rules flags for recursive expansion and flat rule output
 - Add bash/zsh tab completion

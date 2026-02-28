@@ -358,7 +358,7 @@ semacro/
 │   └── semacro.zsh     # Zsh tab completion
 ├── Makefile            # Install wrapper, completions, man page
 ├── README.md
-├── ROADMAP.md          # Planned features (Phases 4+)
+├── ROADMAP.md          # Future directions
 ├── CONTRIBUTING.md     # Contributor guidelines
 └── LICENSE             # MIT license
 ```

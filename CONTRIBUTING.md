@@ -30,7 +30,7 @@ completions/
   semacro.zsh           # Zsh tab completion
 Makefile                # Install wrapper, completions, man page
 README.md               # User-facing documentation
-ROADMAP.md              # Planned features (Phases 4+)
+ROADMAP.md              # Future directions
 CONTRIBUTING.md         # This file
 ```
 
@@ -133,7 +133,7 @@ Always use `-s` to add your `Signed-off-by` line. Follow conventional commit for
 
 ## What to work on
 
-Check the **Development roadmap** in the README (Phases 1-3) and [ROADMAP.md](ROADMAP.md) (Phases 4+).
+Check the **Development roadmap** in the README (Phases 1-5 are complete) and [ROADMAP.md](ROADMAP.md) for future directions.
 
 If you're looking for smaller tasks:
 
