@@ -221,6 +221,7 @@ The existing tools in the SELinux ecosystem have gaps for interactive macro expl
 ```
 semacro/
 ├── README.md
+├── ROADMAP.md          # Planned features (Phases 4+)
 ├── semacro.py          # Main CLI (parser, index, commands)
 ├── Makefile            # Install/uninstall wrapper
 ├── CONTRIBUTING.md     # Contributor guidelines
@@ -248,11 +249,14 @@ semacro/
 - [x] Define resolution — permission sets (`search_dir_perms`, etc.) expanded inline
 - [x] Chained define expansion with nested brace flattening
 
-### Phase 3 — Polish
+### Phase 3 — Polish (in progress)
 - [x] `--rules` / `-r` flag (flat deduplicated policy rules, copy-paste ready)
 - [x] Permission merging — rules with same `(source, target:class)` union their permissions
 - [ ] Bash/Zsh tab completion
 - [ ] Man page
+- [ ] RPM packaging
+
+See [ROADMAP.md](ROADMAP.md) for planned features beyond Phase 3.
 
 ## License
 

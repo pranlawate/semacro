@@ -25,6 +25,7 @@ python3 semacro.py find "rw_.*_perms"
 semacro.py       # Everything lives here — parser, index, commands, CLI
 Makefile         # Install/uninstall wrapper to ~/bin
 README.md        # User-facing documentation
+ROADMAP.md       # Planned features (Phases 4+)
 CONTRIBUTING.md  # This file
 ```
 
@@ -106,13 +107,12 @@ Always use `-s` to add your `Signed-off-by` line. Follow conventional commit for
 
 ## What to work on
 
-Check the **Development roadmap** in the README. Phases 1 and 2 are complete. Phase 3 (polish) is next.
+Check the **Development roadmap** in the README (Phases 1-3) and [ROADMAP.md](ROADMAP.md) (Phases 4+).
 
 If you're looking for smaller tasks:
 
 - Improve error messages
 - Add tests
-- Improve `--help` text for subcommands
 - Handle edge cases in the M4 parser
 - Bash/Zsh tab completion
 
