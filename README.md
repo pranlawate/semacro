@@ -2,7 +2,7 @@
 
 A command-line tool for exploring and expanding SELinux policy macros, interfaces, and templates.
 
-SELinux policies use M4 macros extensively. Understanding what a macro actually does requires manually chaining `seshowif` and `seshowdef` calls, tracking `$1/$2/$3` substitutions by hand, and recursing through nested macros. `semacro` automates this entire process.
+SELinux policies use M4 macros extensively. Understanding what a macro actually does means digging through `.if` and `.spt` files, tracking `$1/$2/$3` substitutions by hand, and recursing through nested macro calls to reach the final allow/type_transition rules. `semacro` automates this entire process.
 
 ## Usage
 

@@ -427,6 +427,11 @@ def cmd_lookup(
     macro = index.get(macro_name)
     if not macro:
         print(f"semacro: macro '{macro_name}' not found", file=sys.stderr)
+        near = [n for n in index if macro_name.lower() in n.lower() and n != macro_name]
+        if near:
+            print(f"  Did you mean: {', '.join(sorted(near)[:5])}", file=sys.stderr)
+        else:
+            print(f"  Try: semacro find \"{macro_name}\"", file=sys.stderr)
         return 1
 
     if (rules or expand) and not args:
@@ -474,6 +479,7 @@ def cmd_find(index: dict[str, MacroDef], pattern: str) -> int:
 
     if not matches:
         print(f"semacro: no macros matching '{pattern}'", file=sys.stderr)
+        print(f"  Patterns are case-insensitive Python regexes. Try a broader pattern.", file=sys.stderr)
         return 1
 
     for name, macro in matches:
@@ -528,6 +534,19 @@ def cmd_list(index: dict[str, MacroDef], category: str | None) -> int:
 
 # --- CLI ---
 
+def _read_arg(value: str | None, command: str) -> str | None:
+    """Resolve a positional argument: use the value if given, read one line
+    from stdin if it's piped and value is None or '-', or error out."""
+    if value is not None and value != "-":
+        return value
+    if not sys.stdin.isatty():
+        line = sys.stdin.readline().strip()
+        if line:
+            return line
+    print(f"semacro {command}: missing required argument (provide it or pipe via stdin)", file=sys.stderr)
+    return None
+
+
 def main() -> int:
     global _use_color
 
@@ -579,10 +598,14 @@ def main() -> int:
                "  semacro lookup -r \"apache_read_log(mysqld_t)\"\n"
                "      Flat deduplicated policy rules, ready to paste into a .te file.\n\n"
                "  semacro lookup -e -d 1 \"files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)\"\n"
-               "      Expand only one level deep",
+               "      Expand only one level deep\n\n"
+               "  echo \"files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)\" | semacro lookup -r\n"
+               "      Read macro call from stdin (useful in scripts)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p_lookup.add_argument("name", help="Macro name or call — e.g. files_pid_filetrans or \"files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)\"")
+    p_lookup.add_argument("name", nargs="?", default=None,
+                          help="Macro name or call — e.g. files_pid_filetrans or \"files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)\". "
+                               "Use - to read from stdin.")
     mode = p_lookup.add_mutually_exclusive_group()
     mode.add_argument("-e", "--expand", action="store_true", help="Recursively expand nested macros into a tree of final policy rules")
     mode.add_argument("-r", "--rules", action="store_true", help="Output flat deduplicated policy rules (copy-paste ready for .te files)")
@@ -591,7 +614,8 @@ def main() -> int:
 
     # find
     p_find = sub.add_parser("find", help="Search for macros matching a regex pattern")
-    p_find.add_argument("pattern", help="Regex pattern to match against macro names")
+    p_find.add_argument("pattern", nargs="?", default=None,
+                        help="Regex pattern to match against macro names. Use - to read from stdin.")
 
     # list
     p_list = sub.add_parser("list", help="List available macros")
@@ -649,9 +673,18 @@ def main() -> int:
         )
 
     if args.command == "lookup":
-        return cmd_lookup(index, args.name, expand=args.expand, rules=args.rules, max_depth=args.depth)
+        name = _read_arg(args.name, "lookup")
+        if name is None:
+            return 1
+        if args.depth < 1:
+            print("semacro: --depth must be at least 1", file=sys.stderr)
+            return 1
+        return cmd_lookup(index, name, expand=args.expand, rules=args.rules, max_depth=args.depth)
     elif args.command == "find":
-        return cmd_find(index, args.pattern)
+        pattern = _read_arg(args.pattern, "find")
+        if pattern is None:
+            return 1
+        return cmd_find(index, pattern)
     elif args.command == "list":
         return cmd_list(index, args.category)
 

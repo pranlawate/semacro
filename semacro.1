@@ -76,6 +76,18 @@ Mutually exclusive with
 .TP
 .BI \-d " N" "\fR, " \-\-depth " N"
 Limit expansion depth (default: 10).
+.PP
+For both
+.B lookup
+and
+.BR find ,
+the positional argument can be read from stdin when piped:
+.PP
+.RS 4
+.EX
+echo "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)" | semacro lookup \-r
+.EE
+.RE
 .SS find \fIPATTERN\fR
 Search for macros whose name matches the Python regular expression
 .IR PATTERN .
