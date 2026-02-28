@@ -1,0 +1,32 @@
+policy_module(myapp, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type myapp_t;
+type myapp_exec_t;
+type myapp_log_t;
+type myapp_var_run_t;
+
+########################################
+#
+# Local policy
+#
+
+# Allow myapp to search standard paths
+files_search_var(myapp_t)
+
+# PID file management
+manage_files_pattern(myapp_t, myapp_var_run_t, myapp_var_run_t)
+files_pid_filetrans(myapp_t, myapp_var_run_t, file)
+
+# Logging
+logging_send_syslog_msg(myapp_t)
+
+# Read its own config
+allow myapp_t myapp_conf_t:file read_file_perms;
+
+# Network access
+corenet_tcp_connect_http_port(myapp_t)

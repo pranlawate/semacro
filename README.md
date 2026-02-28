@@ -13,6 +13,10 @@ semacro lookup "name(arg1, arg2)" --expand     # Expand with argument substituti
 semacro lookup "name(arg1, arg2)" --rules      # Flat policy rules, copy-paste ready for .te files
 semacro find <regex>                           # Search for interfaces/defines matching a pattern
 semacro list [--category kernel|system|all]    # List all available interfaces/templates
+semacro callers <macro>                        # Reverse lookup — who calls this macro?
+semacro which <source> <target> <perm>         # Find macro granting specific access
+semacro which -T <source> <parent> <new_type>  # Find macro creating a type_transition
+semacro expand <file.te>                       # Expand all macros in a .te file
 ```
 
 ## Examples
@@ -150,6 +154,58 @@ $ semacro list --category kernel | head -5
 
 Kind tags: `[i]` interface, `[t]` template, `[d]` define.
 
+### Reverse lookup (who calls this macro?)
+
+```
+$ semacro callers filetrans_pattern
+  [i] modules/kernel/files.if: files_pid_filetrans
+  [i] modules/kernel/files.if: files_tmp_filetrans
+  [i] modules/system/logging.if: logging_log_filetrans
+  ...
+
+12 caller(s)
+```
+
+### Find which macro grants a specific access
+
+```
+$ semacro which ntpd_t httpd_log_t read
+  apache_read_log(ntpd_t)        modules/contrib/apache.if:245
+  apache_manage_log(ntpd_t)      modules/contrib/apache.if:312
+
+2 result(s)
+```
+
+Search with multiple permissions (quote them) and filter by object class:
+
+```
+$ semacro which ntpd_t httpd_log_t "read write" --class file
+  apache_manage_log(ntpd_t)      modules/contrib/apache.if:312
+
+1 result(s)
+```
+
+Search for type_transitions:
+
+```
+$ semacro which -T ntpd_t var_run_t ntpd_var_run_t
+  files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)  modules/kernel/files.if:9312
+
+1 result(s)
+```
+
+### Expand an entire .te file
+
+```
+$ semacro expand myapp.te
+allow myapp_t var_t:dir { getattr search open };
+allow myapp_t myapp_log_t:file { open read write append getattr };
+type_transition myapp_t var_run_t:file myapp_var_run_t ;
+...
+```
+
+Use `--tree` to see the expansion structure instead of flat rules.
+
 ## Installation
 
 Requires Python 3.9+ and access to SELinux policy source files.
@@ -241,9 +297,9 @@ The existing tools in the SELinux ecosystem have gaps for interactive macro expl
 
 | Tool | What it does | What it doesn't do |
 |------|---|---|
-| `seshowif`/`seshowdef` | Show raw definition | No arg substitution, no recursion, no unified search |
+| `seshowif`/`seshowdef` (shell functions from [selinux-funcs](https://gist.github.com/jamesfreeman959/40d41810beccc4ded23dc049d6ed570d)) | Show raw definition | No arg substitution, no recursion, no unified search |
 | [`macro-expander`](https://github.com/fedora-selinux/macro-expander) | Expand to final allow rules via M4 | No tree output, no lookup/search, needs build toolchain |
-| `sepolicy interface` | List interfaces, show descriptions | No macro body, no defines, no expansion |
+| `sepolicy interface` (from [`policycoreutils`](https://github.com/SELinuxProject/selinux/tree/main/python/sepolicy)) | List interfaces, show descriptions | No macro body, no defines, no expansion |
 
 `semacro` fills the gap: **show the definition, search the catalog, and expand step-by-step with a tree view** — all without requiring the policy build toolchain.
 
@@ -292,7 +348,12 @@ semacro/
 - [x] Man page (`man semacro`)
 - [x] RPM packaging (`semacro.spec`)
 
-See [ROADMAP.md](ROADMAP.md) for planned features beyond Phase 3.
+### Phase 4 — Analysis commands ✅
+- [x] `semacro callers` — reverse lookup (find which macros call a given macro)
+- [x] `semacro which` — rule-to-macro search (AV rules and type_transitions)
+- [x] `semacro expand` — expand all macros in a `.te` file to final policy rules
+
+See [ROADMAP.md](ROADMAP.md) for planned features beyond Phase 4.
 
 ## License
 

@@ -101,6 +101,46 @@ Valid values:
 .BR services ", " contrib ", " distributed ", " support ", " all
 (default:
 .BR all ).
+.SS callers \fINAME\fR
+Find which macros directly call the given macro (reverse lookup).
+Useful for understanding the impact of changing a macro definition.
+.SS which \fISOURCE TARGET PERMISSION\fR
+Find macros that would grant the requested access.
+Expands candidate macros with trial arguments and checks the resulting
+rules for a match.
+.PP
+Options:
+.TP
+.BR \-T ", " \-\-transition
+Search for
+.B type_transition
+rules instead of allow rules.
+In this mode, the three positional arguments are
+.IR SOURCE ", " PARENT_TYPE ", " NEW_TYPE .
+.TP
+.BI \-C " CLASS" "\fR, " \-\-class " CLASS"
+Filter by object class (e.g.\&
+.BR file ", " dir ", " sock_file ).
+.TP
+.BI \-N " FILENAME" "\fR, " \-\-name " FILENAME"
+Filter by named transition filename (only with
+.BR \-T ).
+.SS expand \fIFILEPATH\fR
+Read a
+.B .te
+file, expand every macro call, and output the full set of final
+policy rules (flat, deduplicated, merged).
+Use
+.B \-
+to read from stdin.
+.PP
+Options:
+.TP
+.BI \-d " N" "\fR, " \-\-depth " N"
+Limit expansion depth (default: 10).
+.TP
+.BR \-t ", " \-\-tree
+Output expansion trees for each macro call instead of flat rules.
 .SH EXAMPLES
 Look up a macro definition:
 .PP
@@ -147,6 +187,38 @@ List macros in the kernel category:
 .RS 4
 .EX
 semacro list \-c kernel
+.EE
+.RE
+.PP
+Find which macros call filetrans_pattern:
+.PP
+.RS 4
+.EX
+semacro callers filetrans_pattern
+.EE
+.RE
+.PP
+Find macros granting ntpd_t read access to httpd_log_t:
+.PP
+.RS 4
+.EX
+semacro which ntpd_t httpd_log_t read
+.EE
+.RE
+.PP
+Find macros creating a type_transition under var_run_t:
+.PP
+.RS 4
+.EX
+semacro which \-T ntpd_t var_run_t ntpd_var_run_t
+.EE
+.RE
+.PP
+Expand all macros in a policy module:
+.PP
+.RS 4
+.EX
+semacro expand myapp.te
 .EE
 .RE
 .SH ENVIRONMENT

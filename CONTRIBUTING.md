@@ -78,6 +78,19 @@ python3 semacro.py lookup --expand --depth 1 "files_pid_filetrans(ntpd_t, ntpd_v
 # Flat rules output (copy-paste ready, deduplicated)
 python3 semacro.py lookup --rules "apache_read_log(mysqld_t)"
 python3 semacro.py lookup --rules "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)"
+
+# Reverse lookup — who calls a macro?
+python3 semacro.py callers filetrans_pattern
+python3 semacro.py callers manage_files_pattern
+
+# Rule-to-macro search
+python3 semacro.py which ntpd_t httpd_log_t read
+python3 semacro.py which ntpd_t httpd_log_t "read write" --class file
+python3 semacro.py which -T ntpd_t var_run_t ntpd_var_run_t
+
+# Expand a .te file
+python3 semacro.py expand /path/to/ntp.te
+python3 semacro.py expand -t /path/to/ntp.te
 ```
 
 3. Verify edge cases:

@@ -6,11 +6,14 @@ _semacro() {
     local cur prev words cword
     _init_completion || return
 
-    local subcommands="lookup find list"
+    local subcommands="lookup find list callers which expand"
     local global_opts="--no-color --include-path --version --help"
     local lookup_opts="-e --expand -r --rules -d --depth --help"
     local find_opts="--help"
     local list_opts="-c --category --help"
+    local callers_opts="--help"
+    local which_opts="-T --transition -C --class -N --name --help"
+    local expand_opts="-d --depth -t --tree --help"
     local categories="kernel system admin apps roles services contrib distributed support all"
 
     # Find which subcommand is active
@@ -18,7 +21,7 @@ _semacro() {
     local i
     for ((i=1; i < cword; i++)); do
         case "${words[i]}" in
-            lookup|find|list)
+            lookup|find|list|callers|which|expand)
                 subcmd="${words[i]}"
                 break
                 ;;
@@ -42,6 +45,12 @@ _semacro() {
         return
     fi
 
+    # Complete .te files for expand command
+    if [[ "$subcmd" == "expand" && "$cur" != -* ]]; then
+        _filedir te
+        return
+    fi
+
     case "$subcmd" in
         lookup)
             if [[ "$cur" == -* ]]; then
@@ -56,6 +65,21 @@ _semacro() {
         list)
             if [[ "$cur" == -* ]]; then
                 COMPREPLY=($(compgen -W "$list_opts" -- "$cur"))
+            fi
+            ;;
+        callers)
+            if [[ "$cur" == -* ]]; then
+                COMPREPLY=($(compgen -W "$callers_opts" -- "$cur"))
+            fi
+            ;;
+        which)
+            if [[ "$cur" == -* ]]; then
+                COMPREPLY=($(compgen -W "$which_opts" -- "$cur"))
+            fi
+            ;;
+        expand)
+            if [[ "$cur" == -* ]]; then
+                COMPREPLY=($(compgen -W "$expand_opts" -- "$cur"))
             fi
             ;;
         "")
