@@ -1,6 +1,6 @@
 # semacro roadmap
 
-Planned features and future directions. Phases 1-4 are tracked in the [README](README.md).
+Planned features and future directions. Phases 1-5 are tracked in the [README](README.md).
 
 ## Phase 3 — Polish ✅
 
@@ -14,9 +14,13 @@ Planned features and future directions. Phases 1-4 are tracked in the [README](R
 - [x] `semacro which <source> <target> <perm>` — rule-to-macro search (AV rules and type_transitions)
 - [x] `semacro expand <file.te>` — expand all macros in a policy module
 
-## Phase 5 — Visualization and extras
+## Phase 5 — Visualization and extras ✅
 
-- **Dependency graph** — show which macros call which, output in DOT or Mermaid format for visualization
-- **Policy skeleton generator** — `semacro init myapp` generates starter `.te` / `.if` / `.fc` files for a new confined daemon
-- **Recursive callers** — `semacro callers --recursive <macro>` to find indirect callers (A calls B calls C)
+- [x] `semacro deps <macro>` — dependency graph in DOT (Graphviz) and Mermaid format
+- [x] `semacro init <name>` — policy skeleton generator (`.te`, `.if`, `.fc`)
+
+## Future
+
+- **Recursive callers** — `semacro callers --recursive <macro>` to find indirect callers
 - **Test suite** — pytest-based tests with synthetic macro definitions for CI validation
+- **Graphviz rendering** — optional `--render` flag to call `dot` directly and output PNG/SVG

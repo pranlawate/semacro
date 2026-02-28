@@ -91,6 +91,14 @@ python3 semacro.py which -T ntpd_t var_run_t ntpd_var_run_t
 # Expand a .te file
 python3 semacro.py expand /path/to/ntp.te
 python3 semacro.py expand -t /path/to/ntp.te
+
+# Dependency graph
+python3 semacro.py deps files_pid_filetrans
+python3 semacro.py deps --mermaid files_pid_filetrans
+
+# Policy skeleton generator
+python3 semacro.py init myapp
+python3 semacro.py init myapp -o /tmp/
 ```
 
 3. Verify edge cases:

@@ -11,6 +11,8 @@ subcommands=(
     'callers:Find which macros call a given macro'
     'which:Find macros that grant a specific access'
     'expand:Expand all macros in a .te policy file'
+    'deps:Show macro dependency graph in DOT or Mermaid format'
+    'init:Generate starter .te/.if/.fc files for a new policy module'
 )
 
 local -a categories
@@ -62,6 +64,21 @@ _semacro_expand() {
         ':te file:_files -g "*.te"'
 }
 
+_semacro_deps() {
+    _arguments \
+        '(-m --mermaid)'{-m,--mermaid}'[Output Mermaid format instead of DOT]' \
+        {-d,--depth}'[Max depth to follow calls]:depth' \
+        '(-h --help)'{-h,--help}'[Show help]' \
+        ':macro name'
+}
+
+_semacro_init() {
+    _arguments \
+        '(-o --output-dir)'{-o,--output-dir}'[Directory to create files in]:directory:_directories' \
+        '(-h --help)'{-h,--help}'[Show help]' \
+        ':module name'
+}
+
 _arguments -C \
     '--no-color[Disable colored output]' \
     '--include-path[Path to SELinux policy include directory]:directory:_directories' \
@@ -82,6 +99,8 @@ case "$state" in
             callers) _semacro_callers ;;
             which)   _semacro_which ;;
             expand)  _semacro_expand ;;
+            deps)    _semacro_deps ;;
+            init)    _semacro_init ;;
         esac
         ;;
 esac

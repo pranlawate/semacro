@@ -832,6 +832,148 @@ def _merge_rules(rules: list[str]) -> list[str]:
     return [text for _, text in result]
 
 
+def cmd_deps(index: dict[str, MacroDef], name: str, mermaid: bool = False,
+             depth: int = DEFAULT_MAX_DEPTH) -> int:
+    """Output a dependency graph showing which macros the given macro calls."""
+    if name not in index:
+        print(f"semacro: macro '{name}' not found", file=sys.stderr)
+        near = [n for n in index if name.lower() in n.lower() and n != name]
+        if near:
+            print(f"  Did you mean: {', '.join(sorted(near)[:5])}", file=sys.stderr)
+        else:
+            print(f"  Try: semacro find \"{name}\"", file=sys.stderr)
+        return 1
+
+    edges: list[tuple[str, str]] = []
+    visited: set[str] = set()
+
+    def _walk(macro_name: str, level: int):
+        if macro_name in visited or level > depth:
+            return
+        visited.add(macro_name)
+        macro = index.get(macro_name)
+        if not macro:
+            return
+        for call_name, _args, _start, _end in find_calls_in_body(macro.body):
+            if call_name in index:
+                edges.append((macro_name, call_name))
+                _walk(call_name, level + 1)
+
+    _walk(name, 0)
+
+    if not edges:
+        print(f"semacro: '{name}' does not call any other macros", file=sys.stderr)
+        print(f"  To see what calls '{name}', try: semacro callers {name}", file=sys.stderr)
+        return 0
+
+    if mermaid:
+        print("graph LR")
+        for caller, callee in edges:
+            print(f"    {caller} --> {callee}")
+    else:
+        print(f"digraph \"{name}\" {{")
+        print("    rankdir=LR;")
+        print(f"    node [shape=box, fontname=\"monospace\"];")
+        for caller, callee in edges:
+            print(f"    \"{caller}\" -> \"{callee}\";")
+        print("}")
+
+    return 0
+
+
+_INIT_TE_TEMPLATE = """\
+policy_module({name}, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type {name}_t;
+type {name}_exec_t;
+init_daemon_domain({name}_t, {name}_exec_t)
+
+type {name}_log_t;
+logging_log_file({name}_log_t)
+
+type {name}_var_run_t;
+files_pid_file({name}_var_run_t)
+
+########################################
+#
+# {name} local policy
+#
+
+# Logging
+allow {name}_t {name}_log_t:file manage_file_perms;
+logging_log_filetrans({name}_t, {name}_log_t, file)
+logging_send_syslog_msg({name}_t)
+
+# PID file
+manage_files_pattern({name}_t, {name}_var_run_t, {name}_var_run_t)
+files_pid_filetrans({name}_t, {name}_var_run_t, file)
+"""
+
+_INIT_IF_TEMPLATE = """\
+## <summary>{name} policy interface definitions</summary>
+
+########################################
+## <summary>
+##      Allow the specified domain to read
+##      {name} log files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`{name}_read_log',`
+\tgen_require(`
+\t\ttype {name}_log_t;
+\t')
+
+\tallow $1 {name}_log_t:file read_file_perms;
+\tallow $1 {name}_log_t:dir list_dir_perms;
+\tlogging_search_logs($1)
+')
+"""
+
+_INIT_FC_TEMPLATE = """\
+/usr/sbin/{name}\t\t--\tgen_context(system_u:object_r:{name}_exec_t,s0)
+/var/log/{name}(/.*)?		gen_context(system_u:object_r:{name}_log_t,s0)
+/var/run/{name}\\.pid\t\t--\tgen_context(system_u:object_r:{name}_var_run_t,s0)
+"""
+
+
+def cmd_init(name: str, output_dir: str = ".") -> int:
+    """Generate starter .te / .if / .fc files for a new confined daemon."""
+    if not re.match(r'^[a-z][a-z0-9_]*$', name):
+        print(f"semacro: invalid module name '{name}' — use lowercase letters, digits, and underscores",
+              file=sys.stderr)
+        return 1
+
+    out = Path(output_dir)
+    files = {
+        out / f"{name}.te": _INIT_TE_TEMPLATE.format(name=name),
+        out / f"{name}.if": _INIT_IF_TEMPLATE.format(name=name),
+        out / f"{name}.fc": _INIT_FC_TEMPLATE.format(name=name),
+    }
+
+    for fpath, content in files.items():
+        if fpath.exists():
+            print(f"semacro: '{fpath}' already exists, skipping", file=sys.stderr)
+            continue
+        fpath.write_text(content, encoding="utf-8")
+        print(f"  created {fpath}")
+
+    print(f"\nGenerated policy skeleton for '{name}'.")
+    print(f"  Edit {name}.te to add domain-specific rules.")
+    print(f"  Edit {name}.if to expose interfaces for other modules.")
+    print(f"  Edit {name}.fc to set file contexts.")
+    return 0
+
+
 # --- CLI ---
 
 def _read_arg(value: str | None, command: str) -> str | None:
@@ -862,6 +1004,8 @@ def main() -> int:
                "  semacro callers filetrans_pattern                           Reverse lookup\n"
                "  semacro which ntpd_t httpd_log_t read                       Find granting macro\n"
                "  semacro expand myapp.te                                     Expand a .te file\n"
+               "  semacro deps files_pid_filetrans                             Dependency graph\n"
+               "  semacro init myapp                                          Policy skeleton\n"
                "\n"
                "Policy path resolution (highest priority first):\n"
                "  1. --include-path flag\n"
@@ -990,11 +1134,53 @@ def main() -> int:
     p_expand.add_argument("-t", "--tree", action="store_true",
                           help="Output expansion trees instead of flat rules")
 
+    # deps
+    p_deps = sub.add_parser(
+        "deps",
+        help="Show macro dependency graph in DOT or Mermaid format",
+        description="Walk the call tree of a macro and output a dependency graph.",
+        epilog="Examples:\n"
+               "  semacro deps files_pid_filetrans\n"
+               "      Output DOT format (pipe to 'dot -Tpng -o graph.png')\n\n"
+               "  semacro deps --mermaid files_pid_filetrans\n"
+               "      Output Mermaid format (paste into GitHub markdown)\n\n"
+               "  semacro deps -d 2 apache_read_log\n"
+               "      Limit to 2 levels of depth",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p_deps.add_argument("name", nargs="?", default=None,
+                        help="Macro to graph dependencies for. Use - to read from stdin.")
+    p_deps.add_argument("-m", "--mermaid", action="store_true",
+                        help="Output Mermaid format instead of DOT (Graphviz)")
+    p_deps.add_argument("-d", "--depth", type=int, default=DEFAULT_MAX_DEPTH,
+                        help=f"Max depth to follow calls (default: {DEFAULT_MAX_DEPTH})")
+
+    # init
+    p_init = sub.add_parser(
+        "init",
+        help="Generate starter .te/.if/.fc files for a new policy module",
+        description="Create a policy skeleton for a new confined daemon with "
+                    "standard type declarations, logging, and PID file handling.",
+        epilog="Examples:\n"
+               "  semacro init myapp\n"
+               "      Creates myapp.te, myapp.if, myapp.fc in current directory\n\n"
+               "  semacro init myapp -o /path/to/policy/\n"
+               "      Creates files in the specified directory",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p_init.add_argument("name", help="Module name (lowercase, e.g. myapp)")
+    p_init.add_argument("-o", "--output-dir", default=".",
+                        help="Directory to create files in (default: current directory)")
+
     args = parser.parse_args()
 
     if not args.command:
         parser.print_help()
         return 1
+
+    # init doesn't need the policy index
+    if args.command == "init":
+        return cmd_init(args.name, output_dir=args.output_dir)
 
     if args.no_color or not sys.stdout.isatty():
         _use_color = False
@@ -1069,7 +1255,14 @@ def main() -> int:
             return 1
         return cmd_expand_file(index, args.filepath, max_depth=args.depth,
                                tree_mode=args.tree)
-
+    elif args.command == "deps":
+        name = _read_arg(args.name, "deps")
+        if name is None:
+            return 1
+        if args.depth < 1:
+            print("semacro: --depth must be at least 1", file=sys.stderr)
+            return 1
+        return cmd_deps(index, name, mermaid=args.mermaid, depth=args.depth)
     return 0
 
 

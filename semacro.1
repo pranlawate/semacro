@@ -141,6 +141,40 @@ Limit expansion depth (default: 10).
 .TP
 .BR \-t ", " \-\-tree
 Output expansion trees for each macro call instead of flat rules.
+.SS deps \fINAME\fR
+Walk the call tree of a macro and output a dependency graph.
+Defaults to DOT (Graphviz) format; use
+.B \-\-mermaid
+for Mermaid format.
+.PP
+Options:
+.TP
+.BR \-m ", " \-\-mermaid
+Output Mermaid format instead of DOT.
+.TP
+.BI \-d " N" "\fR, " \-\-depth " N"
+Max depth to follow calls (default: 10).
+.PP
+To render DOT output to an image, pipe to
+.BR dot (1)
+(from
+.BR graphviz ):
+.PP
+.RS 4
+.EX
+semacro deps files_pid_filetrans | dot \-Tpng \-o graph.png
+.EE
+.RE
+.SS init \fINAME\fR
+Generate starter
+.BR .te ", " .if ", and " .fc
+files for a new confined daemon.
+Creates standard type declarations, logging, and PID file handling.
+.PP
+Options:
+.TP
+.BI \-o " DIR" "\fR, " \-\-output\-dir " DIR"
+Directory to create files in (default: current directory).
 .SH EXAMPLES
 Look up a macro definition:
 .PP
@@ -219,6 +253,22 @@ Expand all macros in a policy module:
 .RS 4
 .EX
 semacro expand myapp.te
+.EE
+.RE
+.PP
+Output a dependency graph in DOT format:
+.PP
+.RS 4
+.EX
+semacro deps files_pid_filetrans | dot \-Tpng \-o graph.png
+.EE
+.RE
+.PP
+Generate a policy skeleton for a new daemon:
+.PP
+.RS 4
+.EX
+semacro init myapp
 .EE
 .RE
 .SH ENVIRONMENT

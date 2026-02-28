@@ -17,6 +17,8 @@ semacro callers <macro>                        # Reverse lookup — who calls th
 semacro which <source> <target> <perm>         # Find macro granting specific access
 semacro which -T <source> <parent> <new_type>  # Find macro creating a type_transition
 semacro expand <file.te>                       # Expand all macros in a .te file
+semacro deps <macro>                           # Dependency graph (DOT or Mermaid)
+semacro init <name>                            # Generate .te/.if/.fc policy skeleton
 ```
 
 ## Examples
@@ -206,6 +208,47 @@ type_transition myapp_t var_run_t:file myapp_var_run_t ;
 
 Use `--tree` to see the expansion structure instead of flat rules.
 
+### Dependency graph
+
+Output a call graph for a macro in DOT (Graphviz) or Mermaid format:
+
+```
+$ semacro deps files_pid_filetrans
+digraph "files_pid_filetrans" {
+    rankdir=LR;
+    node [shape=box, fontname="monospace"];
+    "files_pid_filetrans" -> "filetrans_pattern";
+    ...
+}
+```
+
+Render to an image with Graphviz (`sudo dnf install graphviz`):
+
+```bash
+semacro deps files_pid_filetrans | dot -Tpng -o graph.png
+```
+
+Or output Mermaid for embedding in GitHub markdown:
+
+```bash
+semacro deps --mermaid files_pid_filetrans
+```
+
+Leaf macros (like `filetrans_pattern`) have no outgoing dependencies -- use `semacro callers` to see what calls them instead.
+
+### Generate a policy skeleton
+
+Quickly scaffold `.te`, `.if`, and `.fc` files for a new confined daemon:
+
+```
+$ semacro init myapp
+  created myapp.te
+  created myapp.if
+  created myapp.fc
+```
+
+The generated skeleton includes type declarations, `init_daemon_domain`, logging, PID file handling, and a sample interface. No `selinux-policy-devel` needed -- `init` works standalone.
+
 ## Installation
 
 Requires Python 3.9+ and access to SELinux policy source files.
@@ -353,7 +396,11 @@ semacro/
 - [x] `semacro which` — rule-to-macro search (AV rules and type_transitions)
 - [x] `semacro expand` — expand all macros in a `.te` file to final policy rules
 
-See [ROADMAP.md](ROADMAP.md) for planned features beyond Phase 4.
+### Phase 5 — Visualization and extras ✅
+- [x] `semacro deps` — dependency graph in DOT (Graphviz) and Mermaid format
+- [x] `semacro init` — policy skeleton generator (`.te`, `.if`, `.fc`)
+
+See [ROADMAP.md](ROADMAP.md) for future directions.
 
 ## License
 
