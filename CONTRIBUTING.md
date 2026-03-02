@@ -61,6 +61,7 @@ git checkout -b your-feature
 # Basic commands
 python3 semacro.py lookup files_pid_filetrans
 python3 semacro.py find "rw_.*_perms"
+python3 semacro.py find --perms "getattr read open"
 python3 semacro.py list --category kernel | head -10
 python3 semacro.py list --category support | head -10
 

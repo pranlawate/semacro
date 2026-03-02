@@ -29,6 +29,7 @@ _semacro_lookup() {
 
 _semacro_find() {
     _arguments \
+        '(-p --perms)'{-p,--perms}'[Find defines containing all listed permissions]:permissions' \
         '(-h --help)'{-h,--help}'[Show help]' \
         ':regex pattern'
 }

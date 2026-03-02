@@ -12,6 +12,7 @@ semacro lookup <name> --expand                 # Recursively expand to final pol
 semacro lookup "name(arg1, arg2)" --expand     # Expand with argument substitution
 semacro lookup "name(arg1, arg2)" --rules      # Flat policy rules, copy-paste ready for .te files
 semacro find <regex>                           # Search for interfaces/defines matching a pattern
+semacro find --perms "getattr read open"       # Find defines containing specific permissions
 semacro list [--category kernel|system|all]    # List all available interfaces/templates
 semacro callers <macro>                        # Reverse lookup — who calls this macro?
 semacro which <source> <target> <perm>         # Find macro granting specific access
@@ -141,6 +142,18 @@ $ semacro find "rw_.*_perms"
   ...
 
 24 result(s)
+```
+
+Reverse-search permission sets — find defines that contain specific permissions:
+
+```
+$ semacro find --perms "getattr read open"
+  read_sock_file_perms  { getattr open read }
+  read_file_perms  { open getattr read ioctl lock }
+  list_dir_perms  { getattr search open read lock ioctl }
+  ...
+
+32 result(s)
 ```
 
 ### List available interfaces

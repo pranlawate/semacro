@@ -91,6 +91,15 @@ echo "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)" | semacro lookup \-r
 .SS find \fIPATTERN\fR
 Search for macros whose name matches the Python regular expression
 .IR PATTERN .
+.PP
+Options:
+.TP
+.BI \-p " PERMS" "\fR, " \-\-perms " PERMS"
+Instead of searching by name, find permission-set defines whose resolved
+value contains all of the space-separated permissions in
+.IR PERMS .
+The match is order-independent and subset-based (a define matches if it
+has at least the requested permissions).
 .SS list
 List all indexed macros.
 .TP
@@ -213,6 +222,14 @@ Search for macros matching a pattern:
 .RS 4
 .EX
 semacro find "pid_filetrans"
+.EE
+.RE
+.PP
+Find defines containing specific permissions:
+.PP
+.RS 4
+.EX
+semacro find \-\-perms "getattr read open"
 .EE
 .RE
 .PP

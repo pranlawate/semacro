@@ -489,8 +489,16 @@ def cmd_lookup(
     return 0
 
 
-def cmd_find(index: dict[str, MacroDef], pattern: str) -> int:
-    """Search for macros whose name matches a regex pattern."""
+def cmd_find(index: dict[str, MacroDef], pattern: str | None = None,
+             perms: str | None = None) -> int:
+    """Search for macros by name pattern or by permission content."""
+    if perms is not None:
+        return _find_by_perms(index, perms)
+
+    if pattern is None:
+        print("semacro find: need a pattern or --perms", file=sys.stderr)
+        return 1
+
     try:
         regex = re.compile(pattern, re.IGNORECASE)
     except re.error as e:
@@ -511,6 +519,38 @@ def cmd_find(index: dict[str, MacroDef], pattern: str) -> int:
         source = colored(macro.source_file, Color.DIM)
         kind_tag = colored(f"[{macro.kind[0]}]", Color.YELLOW)
         print(f"  {kind_tag} {source}: {colored(name, Color.BOLD)}")
+
+    print(colored(f"\n{len(matches)} result(s)", Color.DIM))
+    return 0
+
+
+def _find_by_perms(index: dict[str, MacroDef], perms_str: str) -> int:
+    """Find defines whose resolved value contains all requested permissions."""
+    requested = set(perms_str.replace(",", " ").split())
+    if not requested:
+        print("semacro find --perms: provide at least one permission", file=sys.stderr)
+        return 1
+
+    matches: list[tuple[str, str]] = []
+
+    for name, macro in index.items():
+        if macro.kind != "define" or "$" in macro.body:
+            continue
+        resolved = _resolve_defines_in_text(macro.body.strip(), index)
+        clean = resolved.replace("{", "").replace("}", "").replace(";", "")
+        have = set(clean.split())
+        if requested <= have:
+            matches.append((name, _flatten_braces(resolved)))
+
+    matches.sort(key=lambda pair: (len(pair[1].split()), pair[0]))
+
+    if not matches:
+        print(f"semacro: no defines containing all of: {' '.join(sorted(requested))}",
+              file=sys.stderr)
+        return 1
+
+    for name, value in matches:
+        print(f"  {colored(name, Color.BOLD)}  {colored(value, Color.DIM)}")
 
     print(colored(f"\n{len(matches)} result(s)", Color.DIM))
     return 0
@@ -1084,9 +1124,25 @@ def main() -> int:
                           help=f"Max expansion depth (default: {DEFAULT_MAX_DEPTH})")
 
     # find
-    p_find = sub.add_parser("find", help="Search for macros matching a regex pattern")
+    p_find = sub.add_parser(
+        "find",
+        help="Search for macros by name or by permissions",
+        description="Search for macros by name regex, or find permission-set defines "
+                    "that contain specific permissions.",
+        epilog="Examples:\n"
+               "  semacro find files_pid\n"
+               "      Find macros with 'files_pid' in the name\n\n"
+               "  semacro find --perms \"getattr read open\"\n"
+               "      Find defines containing all listed permissions\n\n"
+               "  semacro find --perms read\n"
+               "      Find all defines that include the 'read' permission",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     p_find.add_argument("pattern", nargs="?", default=None,
                         help="Regex pattern to match against macro names. Use - to read from stdin.")
+    p_find.add_argument("-p", "--perms", metavar="PERMS",
+                        help="Find defines whose value contains all listed permissions "
+                             "(space-separated, order-independent)")
 
     # list
     p_list = sub.add_parser("list", help="List available macros")
@@ -1267,10 +1323,12 @@ def main() -> int:
             return 1
         return cmd_lookup(index, name, expand=args.expand, rules=args.rules, max_depth=args.depth)
     elif args.command == "find":
+        if args.perms:
+            return cmd_find(index, perms=args.perms)
         pattern = _read_arg(args.pattern, "find")
         if pattern is None:
             return 1
-        return cmd_find(index, pattern)
+        return cmd_find(index, pattern=pattern)
     elif args.command == "list":
         return cmd_list(index, args.category)
     elif args.command == "callers":

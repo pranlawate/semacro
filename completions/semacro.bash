@@ -9,7 +9,7 @@ _semacro() {
     local subcommands="lookup find list callers which telookup deps init"
     local global_opts="--no-color --include-path --version --help"
     local lookup_opts="-e --expand -r --rules -d --depth --help"
-    local find_opts="--help"
+    local find_opts="-p --perms --help"
     local list_opts="-c --category --help"
     local callers_opts="--help"
     local which_opts="-T --transition -C --class -N --name --help"
