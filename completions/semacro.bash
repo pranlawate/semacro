@@ -13,7 +13,7 @@ _semacro() {
     local list_opts="-c --category --help"
     local callers_opts="--help"
     local which_opts="-T --transition -C --class -N --name --help"
-    local telookup_opts="-d --depth -t --tree --help"
+    local telookup_opts="-e --expand -d --depth --help"
     local deps_opts="-m --mermaid -d --depth --help"
     local init_opts="-o --output-dir --help"
     local categories="kernel system admin apps roles services contrib distributed support all"

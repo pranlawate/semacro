@@ -58,8 +58,8 @@ _semacro_which() {
 
 _semacro_telookup() {
     _arguments \
+        '(-e --expand)'{-e,--expand}'[Output expansion trees instead of flat rules]' \
         {-d,--depth}'[Max expansion depth]:depth' \
-        '(-t --tree)'{-t,--tree}'[Output expansion trees instead of flat rules]' \
         '(-h --help)'{-h,--help}'[Show help]' \
         ':te file:_files -g "*.te"'
 }

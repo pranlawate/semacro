@@ -1147,7 +1147,7 @@ def main() -> int:
         epilog="Examples:\n"
                "  semacro telookup myapp.te\n"
                "      Output flat merged rules for the module\n\n"
-               "  semacro telookup -t myapp.te\n"
+               "  semacro telookup -e myapp.te\n"
                "      Output expansion trees for each macro call\n\n"
                "  cat myapp.te | semacro telookup -\n"
                "      Read from stdin",
@@ -1156,7 +1156,7 @@ def main() -> int:
     p_telookup.add_argument("filepath", help="Path to .te file (use - for stdin)")
     p_telookup.add_argument("-d", "--depth", type=int, default=DEFAULT_MAX_DEPTH,
                             help=f"Max expansion depth (default: {DEFAULT_MAX_DEPTH})")
-    p_telookup.add_argument("-t", "--tree", action="store_true",
+    p_telookup.add_argument("-e", "--expand", action="store_true",
                             help="Output expansion trees instead of flat rules")
 
     # deps
@@ -1197,7 +1197,18 @@ def main() -> int:
     p_init.add_argument("-o", "--output-dir", default=".",
                         help="Directory to create files in (default: current directory)")
 
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
+
+    if unknown:
+        cmd = getattr(args, "command", None)
+        if cmd:
+            print(f"semacro {cmd}: unrecognized arguments: {' '.join(unknown)}",
+                  file=sys.stderr)
+            print(f"  Run 'semacro {cmd} -h' to see valid options.",
+                  file=sys.stderr)
+        else:
+            parser.parse_args()
+        return 2
 
     if not args.command:
         parser.print_help()
@@ -1279,7 +1290,7 @@ def main() -> int:
             print("semacro: --depth must be at least 1", file=sys.stderr)
             return 1
         return cmd_telookup(index, args.filepath, max_depth=args.depth,
-                            tree_mode=args.tree)
+                            tree_mode=args.expand)
     elif args.command == "deps":
         name = _read_arg(args.name, "deps")
         if name is None:

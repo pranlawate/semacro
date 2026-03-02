@@ -206,7 +206,7 @@ type_transition myapp_t var_run_t:file myapp_var_run_t ;
 ...
 ```
 
-Use `--tree` to see the expansion structure instead of flat rules.
+Use `-e/--expand` to see the expansion tree for each macro call.
 
 ### Dependency graph
 
