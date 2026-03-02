@@ -228,6 +228,7 @@ class ExpansionNode:
     children: list["ExpansionNode"] = field(default_factory=list)
     is_leaf: bool = False
     define_notes: list[str] = field(default_factory=list)
+    display_text: str | None = None
 
 
 _GEN_REQUIRE_BLOCK = re.compile(
@@ -320,7 +321,8 @@ def expand_macro(
             if line and not line.startswith("#"):
                 resolved, notes = _resolve_defines_in_text(line, index, track=True)
                 node.children.append(ExpansionNode(
-                    text=resolved, is_leaf=True, define_notes=notes))
+                    text=resolved, is_leaf=True, define_notes=notes,
+                    display_text=line if notes else None))
         return node
 
     def _add_leaf_lines(text: str):
@@ -333,7 +335,8 @@ def expand_macro(
             ):
                 resolved, notes = _resolve_defines_in_text(line, index, track=True)
                 node.children.append(ExpansionNode(
-                    text=resolved, is_leaf=True, define_notes=notes))
+                    text=resolved, is_leaf=True, define_notes=notes,
+                    display_text=line if notes else None))
 
     last_end = 0
     for call_name, call_args, start, end in calls:
@@ -358,14 +361,16 @@ def format_tree(node: ExpansionNode, prefix: str = "", is_last: bool = True, is_
     """Render an ExpansionNode tree with box-drawing characters."""
     lines = []
 
+    show_text = node.display_text if node.display_text else node.text
+
     if is_root:
-        lines.append(colored(node.text, Color.BOLD, Color.CYAN))
+        lines.append(colored(show_text, Color.BOLD, Color.CYAN))
     else:
         connector = "└── " if is_last else "├── "
         if node.is_leaf:
-            lines.append(prefix + connector + node.text)
+            lines.append(prefix + connector + show_text)
         else:
-            lines.append(prefix + connector + colored(node.text, Color.BOLD, Color.YELLOW))
+            lines.append(prefix + connector + colored(show_text, Color.BOLD, Color.YELLOW))
 
     note_prefix = prefix + ("    " if is_last else "│   ")
     if node.is_leaf and node.define_notes:
