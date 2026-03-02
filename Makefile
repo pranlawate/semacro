@@ -1,5 +1,5 @@
-.PHONY: help install install-wrapper install-wrapper-user install-completions \
-       install-man uninstall-wrapper clean
+.PHONY: help install install-all install-wrapper install-wrapper-user \
+       install-completions install-man uninstall-wrapper clean
 
 SCRIPT_DIR = $(shell pwd)
 BASH_COMPLETION_DIR ?= /etc/bash_completion.d
@@ -10,12 +10,18 @@ help:
 	@echo "=== semacro ==="
 	@echo ""
 	@echo "Setup:"
+	@echo "  install-all          - Install everything: wrapper + completions + man page"
 	@echo "  install              - Install wrapper (interactive: /usr/local/bin or ~/bin)"
 	@echo "  install-wrapper-user - Install wrapper to ~/bin (non-interactive)"
 	@echo "  install-completions  - Install bash/zsh tab completions (requires sudo)"
 	@echo "  install-man          - Install man page (requires sudo)"
 	@echo "  uninstall-wrapper    - Remove wrapper scripts"
 	@echo "  clean                - Remove generated files"
+
+install-all: install-wrapper-user install-completions install-man
+	@echo ""
+	@echo "=== All done ==="
+	@echo "Open a new terminal to pick up completions automatically."
 
 install: install-wrapper
 
