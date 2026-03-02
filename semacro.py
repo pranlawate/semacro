@@ -227,6 +227,7 @@ class ExpansionNode:
     text: str
     children: list["ExpansionNode"] = field(default_factory=list)
     is_leaf: bool = False
+    define_notes: list[str] = field(default_factory=list)
 
 
 _GEN_REQUIRE_BLOCK = re.compile(
@@ -255,25 +256,37 @@ def _flatten_braces(text: str) -> str:
     return text
 
 
-def _resolve_defines_in_text(text: str, index: dict[str, MacroDef]) -> str:
+def _resolve_defines_in_text(
+    text: str, index: dict[str, MacroDef], track: bool = False,
+) -> str | tuple[str, list[str]]:
     """Inline-expand simple define macros (permission sets, etc.) in a leaf line.
 
     Only resolves defines whose bodies don't reference positional args ($N).
     Iterates to handle chained defines (e.g. read_file_perms ->
     read_inherited_file_perms), then flattens any nested brace sets.
+
+    When *track* is True, returns (resolved_text, notes) where notes lists
+    each define that was resolved as "name -> value".
     """
+    notes: list[str] = []
     for _ in range(5):
         changed = False
         for m in _WORD_TOKEN.finditer(text):
             word = m.group(1)
             macro = index.get(word)
             if macro and macro.kind == "define" and "$" not in macro.body:
-                text = text[:m.start()] + macro.body.strip() + text[m.end():]
+                resolved_body = macro.body.strip()
+                if track:
+                    notes.append(f"{word} -> {_flatten_braces(resolved_body)}")
+                text = text[:m.start()] + resolved_body + text[m.end():]
                 changed = True
                 break
         if not changed:
             break
-    return _flatten_braces(text)
+    result = _flatten_braces(text)
+    if track:
+        return result, notes
+    return result
 
 
 def expand_macro(
@@ -305,8 +318,9 @@ def expand_macro(
         for line in body.strip().splitlines():
             line = line.strip()
             if line and not line.startswith("#"):
+                resolved, notes = _resolve_defines_in_text(line, index, track=True)
                 node.children.append(ExpansionNode(
-                    text=_resolve_defines_in_text(line, index), is_leaf=True))
+                    text=resolved, is_leaf=True, define_notes=notes))
         return node
 
     def _add_leaf_lines(text: str):
@@ -317,8 +331,9 @@ def expand_macro(
             if line.endswith(";") or re.match(
                 r"(allow|dontaudit|auditallow|neverallow|type_transition|type_change|type_member|role_transition)\s", line
             ):
+                resolved, notes = _resolve_defines_in_text(line, index, track=True)
                 node.children.append(ExpansionNode(
-                    text=_resolve_defines_in_text(line, index), is_leaf=True))
+                    text=resolved, is_leaf=True, define_notes=notes))
 
     last_end = 0
     for call_name, call_args, start, end in calls:
@@ -351,6 +366,11 @@ def format_tree(node: ExpansionNode, prefix: str = "", is_last: bool = True, is_
             lines.append(prefix + connector + node.text)
         else:
             lines.append(prefix + connector + colored(node.text, Color.BOLD, Color.YELLOW))
+
+    note_prefix = prefix + ("    " if is_last else "│   ")
+    if node.is_leaf and node.define_notes:
+        for note in node.define_notes:
+            lines.append(note_prefix + colored(f"  ↳ {note}", Color.DIM))
 
     child_prefix = prefix + ("    " if is_last else "│   ")
     for i, child in enumerate(node.children):
@@ -434,7 +454,7 @@ def cmd_lookup(
             print(f"  Try: semacro find \"{macro_name}\"", file=sys.stderr)
         return 1
 
-    if (rules or expand) and not args:
+    if (rules or expand) and not args and _macro_arity(macro) > 0:
         print(
             f"semacro: warning: no arguments provided — output will contain raw $N references.\n"
             f"  Try: semacro lookup {'--rules' if rules else '--expand'} \"{macro_name}(type1, type2, ...)\"",
