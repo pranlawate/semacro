@@ -4,7 +4,9 @@
 __version__ = "0.2.0"
 
 import argparse
+import hashlib
 import os
+import pickle
 import re
 import signal
 import sys
@@ -149,6 +151,54 @@ def build_index(include_path: str) -> dict[str, MacroDef]:
             rel = os.path.relpath(full, include_path)
             for macro in parse_file(full, rel):
                 index[macro.name] = macro
+    return index
+
+
+# --- Index caching ---
+
+_CACHE_DIR = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "semacro"
+
+
+def _source_fingerprint(include_path: str) -> str:
+    """Hash of all .if/.spt file paths and their modification times."""
+    entries: list[str] = []
+    for dirpath, _dirs, filenames in os.walk(include_path):
+        for fname in sorted(filenames):
+            if fname.endswith(".if") or fname.endswith(".spt"):
+                full = os.path.join(dirpath, fname)
+                mtime = os.path.getmtime(full)
+                entries.append(f"{full}:{mtime}")
+    return hashlib.sha256("\n".join(entries).encode()).hexdigest()[:16]
+
+
+def _cache_path(include_path: str) -> Path:
+    path_hash = hashlib.sha256(os.path.realpath(include_path).encode()).hexdigest()[:12]
+    return _CACHE_DIR / f"index-{path_hash}.pickle"
+
+
+def load_or_build_index(include_path: str) -> dict[str, MacroDef]:
+    """Load cached index if valid, otherwise build fresh and cache it."""
+    cache = _cache_path(include_path)
+    fingerprint = _source_fingerprint(include_path)
+
+    if cache.exists():
+        try:
+            with open(cache, "rb") as f:
+                saved_fp, index = pickle.load(f)
+            if saved_fp == fingerprint:
+                return index
+        except (pickle.UnpicklingError, ValueError, EOFError, OSError):
+            pass
+
+    index = build_index(include_path)
+
+    try:
+        _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        with open(cache, "wb") as f:
+            pickle.dump((fingerprint, index), f, protocol=pickle.HIGHEST_PROTOCOL)
+    except OSError:
+        pass
+
     return index
 
 
@@ -1293,7 +1343,7 @@ def main() -> int:
         print(f"semacro: include path '{include_path}' does not exist", file=sys.stderr)
         return 1
 
-    index = build_index(include_path)
+    index = load_or_build_index(include_path)
 
     if not index:
         print(f"semacro: no macros found under '{include_path}'", file=sys.stderr)
