@@ -347,6 +347,8 @@ SELinux policy macros come in two forms:
 
 `semacro` parses these files directly (no build toolchain required) and searches both locations automatically.
 
+The parsed index is cached under `~/.cache/semacro/` (or `$XDG_CACHE_HOME/semacro/`), keyed by include path. The cache is invalidated automatically when any policy file changes. First run takes ~3s to parse all files; subsequent runs complete in ~60ms.
+
 ## Motivation
 
 The existing tools in the SELinux ecosystem have gaps for interactive macro exploration:
