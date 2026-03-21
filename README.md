@@ -417,6 +417,12 @@ semacro/
 - [x] `semacro deps` — dependency graph in DOT (Graphviz) and Mermaid format
 - [x] `semacro init` — policy skeleton generator (`.te`, `.if`, `.fc`)
 
+### Phase 6 — UX and performance ✅
+- [x] `telookup -e/--expand` — expansion trees for `.te` file macros
+- [x] Improved error messages for unrecognized flags
+- [x] `find --perms` — reverse permission-set search
+- [x] Index caching (~45x faster repeat runs)
+
 See [ROADMAP.md](ROADMAP.md) for future directions.
 
 ## License

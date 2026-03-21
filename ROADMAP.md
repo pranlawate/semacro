@@ -19,8 +19,17 @@ Planned features and future directions. Phases 1-5 are tracked in the [README](R
 - [x] `semacro deps <macro>` — dependency graph in DOT (Graphviz) and Mermaid format
 - [x] `semacro init <name>` — policy skeleton generator (`.te`, `.if`, `.fc`)
 
+## Phase 6 — UX and performance ✅
+
+- [x] `telookup -e/--expand` — expansion trees for `.te` file macros (renamed from `-t/--tree`)
+- [x] Improved error messages — unrecognized subcommand flags now suggest `semacro <cmd> -h`
+- [x] `find --perms` — reverse permission-set search (find defines by permission content)
+- [x] Index caching — parsed index cached to `~/.cache/semacro/`, ~45x faster repeat runs
+
 ## Future
 
 - **Recursive callers** — `semacro callers --recursive <macro>` to find indirect callers
-- **Test suite** — pytest-based tests with synthetic macro definitions for CI validation
+- **`semacro diff`** — compare macro definitions across policy versions
 - **Graphviz rendering** — optional `--render` flag to call `dot` directly and output PNG/SVG
+- **Test suite** — pytest-based tests with synthetic macro definitions for CI validation
+- **PyPI packaging** — `pip install semacro` for non-RPM users
