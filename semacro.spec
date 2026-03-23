@@ -1,6 +1,6 @@
 Name:           semacro
 Version:        0.2.0
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        Explore and expand SELinux policy macros, interfaces, and templates
 
 License:        MIT
@@ -52,6 +52,10 @@ chmod 755 %{buildroot}%{_bindir}/semacro
 %{_datadir}/zsh/site-functions/_semacro
 
 %changelog
+* Sun Mar 23 2026 Pranav Lawate <pran.lawate@gmail.com> - 0.2.0-4
+- Add pytest test suite (85 tests)
+- Add %check to run tests during RPM build
+
 * Fri Feb 27 2026 Pranav Lawate <pran.lawate@gmail.com> - 0.2.0-3
 - Add semacro deps for dependency graphs in DOT and Mermaid format
 - Add semacro init for policy skeleton generation (.te/.if/.fc)
