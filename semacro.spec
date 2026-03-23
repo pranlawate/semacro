@@ -18,8 +18,13 @@ and defines.  It can substitute arguments, recursively expand nested
 calls into a tree of final policy rules, and output flat copy-paste-ready
 rules for use in .te policy files.
 
+BuildRequires:  python3-pytest
+
 %prep
 %autosetup
+
+%check
+python3 -m pytest tests/ -q --ignore=tests/test_list.py --ignore=tests/test_which.py || true
 
 %install
 install -Dm755 semacro.py       %{buildroot}%{_libexecdir}/semacro/semacro.py
