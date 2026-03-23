@@ -52,7 +52,7 @@ chmod 755 %{buildroot}%{_bindir}/semacro
 %{_datadir}/zsh/site-functions/_semacro
 
 %changelog
-* Sun Mar 23 2026 Pranav Lawate <pran.lawate@gmail.com> - 0.2.0-2
+* Mon Mar 23 2026 Pranav Lawate <pran.lawate@gmail.com> - 0.2.0-2
 - Add pytest test suite (85 tests) and %check
 - Add semacro deps for dependency graphs in DOT and Mermaid format
 - Add semacro init for policy skeleton generation (.te/.if/.fc)
