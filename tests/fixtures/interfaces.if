@@ -1,0 +1,57 @@
+## <summary>Grant read access to myapp config files.</summary>
+interface(`myapp_read_config',`
+	gen_require(`
+		type myapp_conf_t;
+	')
+
+	allow $1 myapp_conf_t:file read_file_perms;
+')
+
+## <summary>Transition to myapp domain.</summary>
+interface(`myapp_domtrans',`
+	gen_require(`
+		type myapp_t, myapp_exec_t;
+	')
+
+	domtrans_pattern($1, myapp_exec_t, myapp_t)
+')
+
+## <summary>Manage myapp PID files.</summary>
+interface(`myapp_manage_pid',`
+	gen_require(`
+		type myapp_var_run_t;
+	')
+
+	manage_files_pattern($1, myapp_var_run_t, myapp_var_run_t)
+	files_pid_filetrans($1, myapp_var_run_t, file)
+')
+
+## <summary>Full admin access to myapp.</summary>
+interface(`myapp_admin',`
+	gen_require(`
+		type myapp_t, myapp_conf_t, myapp_var_run_t;
+	')
+
+	myapp_read_config($1)
+	myapp_manage_pid($1)
+	admin_pattern($1, myapp_t)
+')
+
+## <summary>Send syslog messages.</summary>
+interface(`logging_send_syslog_msg',`
+	gen_require(`
+		type devlog_t;
+	')
+
+	allow $1 devlog_t:sock_file write;
+')
+
+## <summary>Read system state from /proc.</summary>
+interface(`kernel_read_system_state',`
+	gen_require(`
+		type proc_t;
+	')
+
+	allow $1 proc_t:file { read open getattr };
+	allow $1 proc_t:dir search;
+')

@@ -1,0 +1,19 @@
+policy_module(myapp, 1.0.0)
+
+type myapp_t;
+type myapp_exec_t;
+init_daemon_domain(myapp_t, myapp_exec_t)
+
+type myapp_conf_t;
+files_config_file(myapp_conf_t)
+
+type myapp_var_run_t;
+files_pid_file(myapp_var_run_t)
+
+myapp_read_config(myapp_t)
+myapp_manage_pid(myapp_t)
+logging_send_syslog_msg(myapp_t)
+kernel_read_system_state(myapp_t)
+
+allow myapp_t self:capability { kill sys_resource };
+allow myapp_t self:process { setrlimit signal_perms };
