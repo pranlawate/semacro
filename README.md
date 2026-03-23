@@ -266,49 +266,40 @@ The generated skeleton includes type declarations, `init_daemon_domain`, logging
 
 Requires Python 3.9+ and access to SELinux policy source files.
 
-### Quick start
+### Recommended: COPR (Fedora 42/43)
+
+```bash
+sudo dnf copr enable pranlawate/selinux-tools
+sudo dnf install semacro
+```
+
+Installs `/usr/bin/semacro` with man page and bash/zsh tab completion.
+
+### From GitHub Release
+
+```bash
+sudo dnf install https://github.com/pranlawate/semacro/releases/download/v0.2.0/semacro-0.2.0-3.fc43.noarch.rpm
+```
+
+### From source
 
 ```bash
 git clone https://github.com/pranlawate/semacro.git
 cd semacro
-
-# Install wrapper to ~/bin (non-interactive)
-make install-wrapper-user
-
-# Or choose between ~/bin and /usr/local/bin (interactive)
-make install
+make install-wrapper-user       # Install to ~/bin
+make install-completions        # Bash/zsh completion (requires sudo)
+make install-man                # Man page
 ```
 
-### Tab completion and man page
+### Build RPM locally
 
 ```bash
-# Install bash/zsh tab completion (requires sudo)
-make install-completions
-
-# Install the man page
-make install-man
-```
-
-After installing completions, open a new shell or run `source /etc/bash_completion.d/semacro` for Bash. Zsh picks up completions from `$fpath` automatically.
-
-### RPM package (Fedora/RHEL/CentOS)
-
-Build and install as an RPM:
-
-```bash
-# Create a source tarball
 tar czf ~/rpmbuild/SOURCES/semacro-0.2.0.tar.gz --transform='s,^,semacro-0.2.0/,' \
     semacro.py semacro.1 semacro.spec completions/ Makefile \
     README.md CONTRIBUTING.md ROADMAP.md LICENSE
-
-# Build the RPM
 rpmbuild -ba semacro.spec
-
-# Install
 sudo dnf install ~/rpmbuild/RPMS/noarch/semacro-0.2.0-3.*.noarch.rpm
 ```
-
-The RPM installs the wrapper to `/usr/bin/semacro`, the man page, and bash/zsh completions.
 
 ### Configuring the policy path
 
