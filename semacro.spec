@@ -5,11 +5,13 @@ Summary:        Explore and expand SELinux policy macros, interfaces, and templa
 
 License:        MIT
 URL:            https://github.com/pranlawate/semacro
-Source0:        %{name}-%{version}.tar.gz
+Source0:        https://github.com/pranlawate/semacro/archive/refs/tags/v%{version}-2.tar.gz
 
 BuildArch:      noarch
 Requires:       python3 >= 3.9
 Requires:       selinux-policy-devel
+BuildRequires:  python3-pytest
+BuildRequires:  selinux-policy-devel
 
 %description
 semacro parses the SELinux reference-policy macro library and provides
@@ -18,13 +20,12 @@ and defines.  It can substitute arguments, recursively expand nested
 calls into a tree of final policy rules, and output flat copy-paste-ready
 rules for use in .te policy files.
 
-BuildRequires:  python3-pytest
-
 %prep
-%autosetup
+%autosetup -n %{name}-%{version}-2
 
-%check
-python3 -m pytest tests/ -q --ignore=tests/test_list.py --ignore=tests/test_which.py || true
+%build
+# Nothing to build (pure Python script) 
+
 
 %install
 install -Dm755 semacro.py       %{buildroot}%{_libexecdir}/semacro/semacro.py
@@ -35,6 +36,7 @@ install -Dm644 completions/semacro.bash \
 install -Dm644 completions/semacro.zsh \
     %{buildroot}%{_datadir}/zsh/site-functions/_semacro
 
+
 mkdir -p %{buildroot}%{_bindir}
 cat > %{buildroot}%{_bindir}/semacro << 'WRAPPER'
 #!/bin/bash
@@ -42,10 +44,14 @@ exec python3 %{_libexecdir}/semacro/semacro.py "$@"
 WRAPPER
 chmod 755 %{buildroot}%{_bindir}/semacro
 
+%check
+python3 -m pytest tests/ 
+
 %files
 %license LICENSE
 %doc README.md CONTRIBUTING.md ROADMAP.md
 %{_bindir}/semacro
+%dir %{_libexecdir}/semacro
 %{_libexecdir}/semacro/semacro.py
 %{_mandir}/man1/semacro.1*
 %{_datadir}/bash-completion/completions/semacro
@@ -53,7 +59,7 @@ chmod 755 %{buildroot}%{_bindir}/semacro
 
 %changelog
 * Mon Mar 23 2026 Pranav Lawate <pran.lawate@gmail.com> - 0.2.0-2
-- Add pytest test suite (85 tests) and %check
+- Add pytest test suite (85 tests) and %%check
 - Add semacro deps for dependency graphs in DOT and Mermaid format
 - Add semacro init for policy skeleton generation (.te/.if/.fc)
 - Add man page, bash/zsh completion scripts
