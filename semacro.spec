@@ -5,12 +5,13 @@ Summary:        Explore and expand SELinux policy macros, interfaces, and templa
 
 License:        MIT
 URL:            https://github.com/pranlawate/semacro
-Source0:        https://github.com/pranlawate/semacro/archive/refs/tags/v%{version}.tar.gz
+Source0:        https://github.com/pranlawate/semacro/archive/refs/tags/v%{version}-2.tar.gz
 
 BuildArch:      noarch
 Requires:       python3 >= 3.9
 Requires:       selinux-policy-devel
-BuildRequires:  python3-pytest 
+BuildRequires:  python3-pytest
+BuildRequires:  selinux-policy-devel
 
 %description
 semacro parses the SELinux reference-policy macro library and provides
@@ -20,13 +21,11 @@ calls into a tree of final policy rules, and output flat copy-paste-ready
 rules for use in .te policy files.
 
 %prep
-%autosetup
-
-%check
-python3 -m pytest tests/ -q --ignore=tests/test_list.py --ignore=tests/test_which.py || true
+%autosetup -n %{name}-%{version}-2
 
 %build
 # Nothing to build (pure Python script) 
+
 
 %install
 install -Dm755 semacro.py       %{buildroot}%{_libexecdir}/semacro/semacro.py
@@ -36,6 +35,10 @@ install -Dm644 completions/semacro.bash \
     %{buildroot}%{_datadir}/bash-completion/completions/semacro
 install -Dm644 completions/semacro.zsh \
     %{buildroot}%{_datadir}/zsh/site-functions/_semacro
+
+%check
+python3 -m pytest tests/ 
+
 
 mkdir -p %{buildroot}%{_bindir}
 cat > %{buildroot}%{_bindir}/semacro << 'WRAPPER'
