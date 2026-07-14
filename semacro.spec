@@ -36,9 +36,6 @@ install -Dm644 completions/semacro.bash \
 install -Dm644 completions/semacro.zsh \
     %{buildroot}%{_datadir}/zsh/site-functions/_semacro
 
-%check
-python3 -m pytest tests/ 
-
 
 mkdir -p %{buildroot}%{_bindir}
 cat > %{buildroot}%{_bindir}/semacro << 'WRAPPER'
@@ -47,10 +44,14 @@ exec python3 %{_libexecdir}/semacro/semacro.py "$@"
 WRAPPER
 chmod 755 %{buildroot}%{_bindir}/semacro
 
+%check
+python3 -m pytest tests/ 
+
 %files
 %license LICENSE
 %doc README.md CONTRIBUTING.md ROADMAP.md
 %{_bindir}/semacro
+%dir %{_libexecdir}/semacro
 %{_libexecdir}/semacro/semacro.py
 %{_mandir}/man1/semacro.1*
 %{_datadir}/bash-completion/completions/semacro
