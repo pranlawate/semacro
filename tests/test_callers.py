@@ -18,15 +18,15 @@ def test_callers_not_found(synthetic_index, capsys):
 def test_callers_no_callers(synthetic_index, capsys):
     ret = sm.cmd_callers(synthetic_index, "myapp_admin")
     captured = capsys.readouterr()
-    # myapp_admin is not called by any other macro in fixtures
+    assert ret == 0
+    assert "no macros call" in captured.err
 
 
 def test_callers_for_define(synthetic_index, capsys):
-    ret = sm.cmd_callers(synthetic_index, "manage_files_pattern")
+    ret = sm.cmd_callers(synthetic_index, "domtrans_pattern")
+    assert ret == 0
     captured = capsys.readouterr()
-    # manage_files_pattern is called by myapp_manage_pid
-    if ret == 0:
-        assert "myapp_manage_pid" in captured.out
+    assert "myapp_domtrans" in captured.out
 
 
 def test_callers_manage_files_pattern(synthetic_index, capsys):

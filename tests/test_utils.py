@@ -21,15 +21,12 @@ def test_parse_call_multiple_args():
 
 def test_parse_call_no_args():
     result = sm.parse_call("read_file_perms")
-    assert result is None or result[1] == []
+    assert result is None
 
 
 def test_parse_call_none():
-    try:
-        result = sm.parse_call(None)
-        assert result is None
-    except (AttributeError, TypeError):
-        pass  # None input may raise
+    with pytest.raises(AttributeError):
+        sm.parse_call(None)
 
 
 def test_parse_call_empty():

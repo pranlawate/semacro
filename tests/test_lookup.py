@@ -53,4 +53,5 @@ def test_lookup_nested_expansion(synthetic_index, capsys):
     ret = sm.cmd_lookup(synthetic_index, "myapp_admin", expand=True)
     assert ret == 0
     captured = capsys.readouterr()
-    assert "myapp_read_config" in captured.out or "myapp_manage_pid" in captured.out
+    assert "myapp_read_config" in captured.out
+    assert "myapp_manage_pid" in captured.out
