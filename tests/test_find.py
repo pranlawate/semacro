@@ -14,7 +14,8 @@ def test_find_regex(synthetic_index, capsys):
     ret = sm.cmd_find(synthetic_index, ".*pid.*")
     assert ret == 0
     captured = capsys.readouterr()
-    assert "myapp_manage_pid" in captured.out or "files_pid_filetrans" in captured.out
+    assert "myapp_manage_pid" in captured.out
+    assert "files_pid_filetrans" in captured.out
 
 
 def test_find_no_match(synthetic_index, capsys):
