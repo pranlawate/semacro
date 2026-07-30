@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """semacro - explore and expand SELinux policy macros, interfaces, and templates."""
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 import argparse
 import hashlib
@@ -16,13 +16,15 @@ from pathlib import Path
 
 # --- Data model ---
 
+
 @dataclass
 class MacroDef:
     """A parsed macro definition (interface, template, or define)."""
+
     name: str
-    kind: str          # "interface", "template", or "define"
+    kind: str  # "interface", "template", or "define"
     body: str
-    source_file: str   # path relative to include root
+    source_file: str  # path relative to include root
     line_number: int
 
     def display_body(self) -> str:
@@ -30,6 +32,7 @@ class MacroDef:
 
 
 # --- Color helpers ---
+
 
 class Color:
     BOLD = "\033[1m"
@@ -40,7 +43,9 @@ class Color:
     DIM = "\033[2m"
     RESET = "\033[0m"
 
+
 _use_color = True
+
 
 def colored(text: str, *codes: str) -> str:
     if not _use_color:
@@ -49,6 +54,7 @@ def colored(text: str, *codes: str) -> str:
 
 
 # --- M4 parser ---
+
 
 def _find_m4_block_end(text: str, start: int) -> int:
     """Find the matching closing quote for an M4 backtick-quoted block.
@@ -61,7 +67,7 @@ def _find_m4_block_end(text: str, start: int) -> int:
     i = start
     while i < len(text):
         ch = text[i]
-        if ch == '`':
+        if ch == "`":
             depth += 1
         elif ch == "'":
             depth -= 1
@@ -101,14 +107,16 @@ def parse_file(filepath: str, rel_path: str) -> list[MacroDef]:
         if body.endswith("\n"):
             body = body[:-1]
 
-        line_number = text[:m.start()].count("\n") + 1
-        results.append(MacroDef(
-            name=name,
-            kind=kind,
-            body=body,
-            source_file=rel_path,
-            line_number=line_number,
-        ))
+        line_number = text[: m.start()].count("\n") + 1
+        results.append(
+            MacroDef(
+                name=name,
+                kind=kind,
+                body=body,
+                source_file=rel_path,
+                line_number=line_number,
+            )
+        )
 
     return results
 
@@ -206,6 +214,7 @@ def load_or_build_index(include_path: str) -> dict[str, MacroDef]:
 
 _CALL_PATTERN = re.compile(r"^(\w+)\((.+)\)$", re.DOTALL)
 
+
 def parse_call(text: str) -> tuple[str, list[str]] | None:
     """Parse 'name(arg1, arg2, ...)' into (name, [arg1, arg2, ...]).
 
@@ -228,6 +237,7 @@ def substitute_args(body: str, args: list[str]) -> str:
     matching M4 behavior.  Also handles $* (all args as comma-separated)
     and leaves $0 as-is (macro name).
     """
+
     def _replacer(m: re.Match) -> str:
         idx = int(m.group(1))
         if idx == 0:
@@ -236,12 +246,13 @@ def substitute_args(body: str, args: list[str]) -> str:
             return args[idx - 1]
         return ""
 
-    result = re.sub(r'\$(\d+)', _replacer, body)
+    result = re.sub(r"\$(\d+)", _replacer, body)
     result = result.replace("$*", ",".join(args))
     return result
 
 
 _BODY_CALL = re.compile(r"\b(\w+)\(([^)]*)\)")
+
 
 def find_calls_in_body(body: str) -> list[tuple[str, list[str], int, int]]:
     """Find macro calls in a body, returning (name, args, start, end) for each.
@@ -250,12 +261,26 @@ def find_calls_in_body(body: str) -> list[tuple[str, list[str], int, int]]:
     policy statements that aren't macro calls.
     """
     skip_names = {
-        "allow", "dontaudit", "auditallow", "neverallow",
-        "type_transition", "type_change", "type_member",
-        "role_transition", "range_transition",
-        "gen_require", "optional_policy", "tunable_policy",
-        "require", "type", "role", "attribute", "bool",
-        "ifdef", "ifndef", "refpolicywarn",
+        "allow",
+        "dontaudit",
+        "auditallow",
+        "neverallow",
+        "type_transition",
+        "type_change",
+        "type_member",
+        "role_transition",
+        "range_transition",
+        "gen_require",
+        "optional_policy",
+        "tunable_policy",
+        "require",
+        "type",
+        "role",
+        "attribute",
+        "bool",
+        "ifdef",
+        "ifndef",
+        "refpolicywarn",
     }
     calls = []
     for m in _BODY_CALL.finditer(body):
@@ -263,7 +288,7 @@ def find_calls_in_body(body: str) -> list[tuple[str, list[str], int, int]]:
         if name in skip_names:
             continue
         line_start = body.rfind("\n", 0, m.start()) + 1
-        line_prefix = body[line_start:m.start()].strip()
+        line_prefix = body[line_start : m.start()].strip()
         if line_prefix.startswith("#"):
             continue
         args = [a.strip() for a in m.group(2).split(",")] if m.group(2).strip() else []
@@ -274,6 +299,7 @@ def find_calls_in_body(body: str) -> list[tuple[str, list[str], int, int]]:
 @dataclass
 class ExpansionNode:
     """A node in the expansion tree."""
+
     text: str
     children: list["ExpansionNode"] = field(default_factory=list)
     is_leaf: bool = False
@@ -286,6 +312,7 @@ _GEN_REQUIRE_BLOCK = re.compile(
     re.DOTALL,
 )
 
+
 def _strip_gen_require(body: str) -> str:
     """Remove gen_require(`...') blocks from a macro body."""
     return _GEN_REQUIRE_BLOCK.sub("", body)
@@ -293,22 +320,24 @@ def _strip_gen_require(body: str) -> str:
 
 DEFAULT_MAX_DEPTH = 10
 
-_WORD_TOKEN = re.compile(r'\b([a-zA-Z_]\w+)\b')
+_WORD_TOKEN = re.compile(r"\b([a-zA-Z_]\w+)\b")
 
 
-_NESTED_BRACES = re.compile(r'\{([^{}]*)\{([^{}]*)\}([^{}]*)\}')
+_NESTED_BRACES = re.compile(r"\{([^{}]*)\{([^{}]*)\}([^{}]*)\}")
 
 
 def _flatten_braces(text: str) -> str:
     """Flatten nested permission brace sets: { a { b c } d } -> { a b c d }."""
     while _NESTED_BRACES.search(text):
-        text = _NESTED_BRACES.sub(r'{ \1 \2 \3 }', text)
-    text = re.sub(r'\s{2,}', ' ', text)
+        text = _NESTED_BRACES.sub(r"{ \1 \2 \3 }", text)
+    text = re.sub(r"\s{2,}", " ", text)
     return text
 
 
 def _resolve_defines_in_text(
-    text: str, index: dict[str, MacroDef], track: bool = False,
+    text: str,
+    index: dict[str, MacroDef],
+    track: bool = False,
 ) -> str | tuple[str, list[str]]:
     """Inline-expand simple define macros (permission sets, etc.) in a leaf line.
 
@@ -329,7 +358,7 @@ def _resolve_defines_in_text(
                 resolved_body = macro.body.strip()
                 if track:
                     notes.append(f"{word} -> {_flatten_braces(resolved_body)}")
-                text = text[:m.start()] + resolved_body + text[m.end():]
+                text = text[: m.start()] + resolved_body + text[m.end() :]
                 changed = True
                 break
         if not changed:
@@ -352,7 +381,9 @@ def expand_macro(
     node = ExpansionNode(text=call_str)
 
     if depth > max_depth:
-        node.children.append(ExpansionNode(text="... (max depth reached)", is_leaf=True))
+        node.children.append(
+            ExpansionNode(text="... (max depth reached)", is_leaf=True)
+        )
         return node
 
     macro = index.get(name)
@@ -370,9 +401,14 @@ def expand_macro(
             line = line.strip()
             if line and not line.startswith("#"):
                 resolved, notes = _resolve_defines_in_text(line, index, track=True)
-                node.children.append(ExpansionNode(
-                    text=resolved, is_leaf=True, define_notes=notes,
-                    display_text=line if notes else None))
+                node.children.append(
+                    ExpansionNode(
+                        text=resolved,
+                        is_leaf=True,
+                        define_notes=notes,
+                        display_text=line if notes else None,
+                    )
+                )
         return node
 
     def _add_leaf_lines(text: str):
@@ -381,12 +417,18 @@ def expand_macro(
             if not line or line.startswith("#"):
                 continue
             if line.endswith(";") or re.match(
-                r"(allow|dontaudit|auditallow|neverallow|type_transition|type_change|type_member|role_transition)\s", line
+                r"(allow|dontaudit|auditallow|neverallow|type_transition|type_change|type_member|role_transition)\s",
+                line,
             ):
                 resolved, notes = _resolve_defines_in_text(line, index, track=True)
-                node.children.append(ExpansionNode(
-                    text=resolved, is_leaf=True, define_notes=notes,
-                    display_text=line if notes else None))
+                node.children.append(
+                    ExpansionNode(
+                        text=resolved,
+                        is_leaf=True,
+                        define_notes=notes,
+                        display_text=line if notes else None,
+                    )
+                )
 
     last_end = 0
     for call_name, call_args, start, end in calls:
@@ -394,12 +436,16 @@ def expand_macro(
 
         child_macro = index.get(call_name)
         if child_macro:
-            node.children.append(expand_macro(index, call_name, call_args, depth + 1, max_depth))
+            node.children.append(
+                expand_macro(index, call_name, call_args, depth + 1, max_depth)
+            )
         else:
-            node.children.append(ExpansionNode(
-                text=f"{call_name}({', '.join(call_args)})",
-                is_leaf=True,
-            ))
+            node.children.append(
+                ExpansionNode(
+                    text=f"{call_name}({', '.join(call_args)})",
+                    is_leaf=True,
+                )
+            )
         last_end = end
 
     _add_leaf_lines(body[last_end:])
@@ -407,7 +453,9 @@ def expand_macro(
     return node
 
 
-def format_tree(node: ExpansionNode, prefix: str = "", is_last: bool = True, is_root: bool = True) -> str:
+def format_tree(
+    node: ExpansionNode, prefix: str = "", is_last: bool = True, is_root: bool = True
+) -> str:
     """Render an ExpansionNode tree with box-drawing characters."""
     lines = []
 
@@ -420,7 +468,9 @@ def format_tree(node: ExpansionNode, prefix: str = "", is_last: bool = True, is_
         if node.is_leaf:
             lines.append(prefix + connector + show_text)
         else:
-            lines.append(prefix + connector + colored(show_text, Color.BOLD, Color.YELLOW))
+            lines.append(
+                prefix + connector + colored(show_text, Color.BOLD, Color.YELLOW)
+            )
 
     note_prefix = prefix + ("    " if is_last else "│   ")
     if node.is_leaf and node.define_notes:
@@ -429,14 +479,18 @@ def format_tree(node: ExpansionNode, prefix: str = "", is_last: bool = True, is_
 
     child_prefix = prefix + ("    " if is_last else "│   ")
     for i, child in enumerate(node.children):
-        is_child_last = (i == len(node.children) - 1)
-        lines.append(format_tree(child, child_prefix if not is_root else "", is_child_last, is_root=False))
+        is_child_last = i == len(node.children) - 1
+        lines.append(
+            format_tree(
+                child, child_prefix if not is_root else "", is_child_last, is_root=False
+            )
+        )
 
     return "\n".join(lines)
 
 
 _AV_RULE = re.compile(
-    r'^(allow|dontaudit|auditallow|neverallow)\s+(\S+)\s+(\S+:\S+)\s+\{([^}]+)\}\s*;$'
+    r"^(allow|dontaudit|auditallow|neverallow)\s+(\S+)\s+(\S+:\S+)\s+\{([^}]+)\}\s*;$"
 )
 
 
@@ -447,11 +501,13 @@ def collect_leaf_rules(node: ExpansionNode) -> list[str]:
     sets unioned.  Non-AV rules (type_transition, etc.) pass through as-is.
     """
     seen: dict[str, None] = {}
+
     def _walk(n: ExpansionNode):
         if n.is_leaf:
             seen.setdefault(n.text, None)
         for child in n.children:
             _walk(child)
+
     _walk(node)
 
     merged_perms: dict[str, dict[str, None]] = {}
@@ -480,6 +536,7 @@ def collect_leaf_rules(node: ExpansionNode) -> list[str]:
 
 # --- Commands ---
 
+
 def cmd_lookup(
     index: dict[str, MacroDef],
     name: str,
@@ -506,13 +563,13 @@ def cmd_lookup(
         if near:
             print(f"  Did you mean: {', '.join(sorted(near)[:5])}", file=sys.stderr)
         else:
-            print(f"  Try: semacro find \"{macro_name}\"", file=sys.stderr)
+            print(f'  Try: semacro find "{macro_name}"', file=sys.stderr)
         return 1
 
     if (rules or expand) and not args and _macro_arity(macro) > 0:
         print(
             f"semacro: warning: no arguments provided — output will contain raw $N references.\n"
-            f"  Try: semacro lookup {'--rules' if rules else '--expand'} \"{macro_name}(type1, type2, ...)\"",
+            f'  Try: semacro lookup {"--rules" if rules else "--expand"} "{macro_name}(type1, type2, ...)"',
             file=sys.stderr,
         )
 
@@ -527,7 +584,11 @@ def cmd_lookup(
         print(format_tree(tree))
         return 0
 
-    header = colored(f"{macro.kind}", Color.DIM) + " " + colored(macro.name, Color.BOLD, Color.CYAN)
+    header = (
+        colored(f"{macro.kind}", Color.DIM)
+        + " "
+        + colored(macro.name, Color.BOLD, Color.CYAN)
+    )
     source = colored(f"# {macro.source_file}:{macro.line_number}", Color.DIM)
     print(f"{header}  {source}")
 
@@ -539,8 +600,9 @@ def cmd_lookup(
     return 0
 
 
-def cmd_find(index: dict[str, MacroDef], pattern: str | None = None,
-             perms: str | None = None) -> int:
+def cmd_find(
+    index: dict[str, MacroDef], pattern: str | None = None, perms: str | None = None
+) -> int:
     """Search for macros by name pattern or by permission content."""
     if perms is not None:
         return _find_by_perms(index, perms)
@@ -562,7 +624,10 @@ def cmd_find(index: dict[str, MacroDef], pattern: str | None = None,
 
     if not matches:
         print(f"semacro: no macros matching '{pattern}'", file=sys.stderr)
-        print(f"  Patterns are case-insensitive Python regexes. Try a broader pattern.", file=sys.stderr)
+        print(
+            f"  Patterns are case-insensitive Python regexes. Try a broader pattern.",
+            file=sys.stderr,
+        )
         return 1
 
     for name, macro in matches:
@@ -595,8 +660,10 @@ def _find_by_perms(index: dict[str, MacroDef], perms_str: str) -> int:
     matches.sort(key=lambda pair: (len(pair[1].split()), pair[0]))
 
     if not matches:
-        print(f"semacro: no defines containing all of: {' '.join(sorted(requested))}",
-              file=sys.stderr)
+        print(
+            f"semacro: no defines containing all of: {' '.join(sorted(requested))}",
+            file=sys.stderr,
+        )
         return 1
 
     for name, value in matches:
@@ -607,15 +674,15 @@ def _find_by_perms(index: dict[str, MacroDef], perms_str: str) -> int:
 
 
 _CATEGORY_DIRS = {
-    "kernel":      {"kernel"},
-    "system":      {"system"},
-    "admin":       {"admin"},
-    "apps":        {"apps"},
-    "roles":       {"roles"},
-    "services":    {"services"},
-    "contrib":     {"contrib"},
+    "kernel": {"kernel"},
+    "system": {"system"},
+    "admin": {"admin"},
+    "apps": {"apps"},
+    "roles": {"roles"},
+    "services": {"services"},
+    "contrib": {"contrib"},
     "distributed": {"distributed"},
-    "support":     {"support"},
+    "support": {"support"},
 }
 
 
@@ -655,7 +722,7 @@ def cmd_callers(index: dict[str, MacroDef], name: str) -> int:
         if near:
             print(f"  Did you mean: {', '.join(sorted(near)[:5])}", file=sys.stderr)
         else:
-            print(f"  Try: semacro find \"{name}\"", file=sys.stderr)
+            print(f'  Try: semacro find "{name}"', file=sys.stderr)
         return 1
 
     callers = []
@@ -681,7 +748,7 @@ def cmd_callers(index: dict[str, MacroDef], name: str) -> int:
     return 0
 
 
-_HIGHEST_ARG = re.compile(r'\$(\d+)')
+_HIGHEST_ARG = re.compile(r"\$(\d+)")
 
 
 def _macro_arity(macro: MacroDef) -> int:
@@ -690,7 +757,10 @@ def _macro_arity(macro: MacroDef) -> int:
 
 
 def _build_transition_trials(
-    source: str, parent: str, new_type: str, arity: int,
+    source: str,
+    parent: str,
+    new_type: str,
+    arity: int,
 ) -> list[list[str]]:
     """Build trial argument lists for type_transition search.
 
@@ -821,17 +891,24 @@ def cmd_which(
                     continue
                 r_perms = set(r_perms_str.split())
                 if requested_perms.issubset(r_perms):
-                    call_sig = f"{macro_name}({', '.join(a for a in winning_args if a)})"
+                    call_sig = (
+                        f"{macro_name}({', '.join(a for a in winning_args if a)})"
+                    )
                     matches.append((macro_name, call_sig, macro))
                     break
 
     if not matches:
         if transition:
-            print(f"semacro: no macros found that create type_transition "
-                  f"{source} {target} -> {third}", file=sys.stderr)
+            print(
+                f"semacro: no macros found that create type_transition "
+                f"{source} {target} -> {third}",
+                file=sys.stderr,
+            )
         else:
-            print(f"semacro: no macros found granting {source} {third} on {target}",
-                  file=sys.stderr)
+            print(
+                f"semacro: no macros found granting {source} {third} on {target}",
+                file=sys.stderr,
+            )
         return 1
 
     seen_names: set[str] = set()
@@ -846,14 +923,14 @@ def cmd_which(
     return 0
 
 
-_POLICY_MODULE = re.compile(r'^\s*policy_module\s*\(', re.MULTILINE)
-_COMMENT_LINE = re.compile(r'^\s*#')
-_BLANK_LINE = re.compile(r'^\s*$')
+_POLICY_MODULE = re.compile(r"^\s*policy_module\s*\(", re.MULTILINE)
+_COMMENT_LINE = re.compile(r"^\s*#")
+_BLANK_LINE = re.compile(r"^\s*$")
 _RULE_STATEMENT = re.compile(
-    r'^\s*(allow|dontaudit|auditallow|neverallow|type_transition|type_change|'
-    r'type_member|role_transition|range_transition)\s'
+    r"^\s*(allow|dontaudit|auditallow|neverallow|type_transition|type_change|"
+    r"type_member|role_transition|range_transition)\s"
 )
-_TYPE_DECL = re.compile(r'^\s*(type|attribute|typeattribute|typealias|bool|role)\s')
+_TYPE_DECL = re.compile(r"^\s*(type|attribute|typeattribute|typealias|bool|role)\s")
 
 
 def cmd_telookup(
@@ -898,8 +975,9 @@ def cmd_telookup(
             for call_name, call_args, _start, _end in calls:
                 macro = index.get(call_name)
                 if macro:
-                    tree = expand_macro(index, call_name, call_args,
-                                        max_depth=max_depth)
+                    tree = expand_macro(
+                        index, call_name, call_args, max_depth=max_depth
+                    )
                     if tree_mode:
                         all_trees.append(tree)
                     else:
@@ -947,8 +1025,12 @@ def _merge_rules(rules: list[str]) -> list[str]:
     return [text for _, text in result]
 
 
-def cmd_deps(index: dict[str, MacroDef], name: str, mermaid: bool = False,
-             depth: int = DEFAULT_MAX_DEPTH) -> int:
+def cmd_deps(
+    index: dict[str, MacroDef],
+    name: str,
+    mermaid: bool = False,
+    depth: int = DEFAULT_MAX_DEPTH,
+) -> int:
     """Output a dependency graph showing which macros the given macro calls."""
     if name not in index:
         print(f"semacro: macro '{name}' not found", file=sys.stderr)
@@ -956,7 +1038,7 @@ def cmd_deps(index: dict[str, MacroDef], name: str, mermaid: bool = False,
         if near:
             print(f"  Did you mean: {', '.join(sorted(near)[:5])}", file=sys.stderr)
         else:
-            print(f"  Try: semacro find \"{name}\"", file=sys.stderr)
+            print(f'  Try: semacro find "{name}"', file=sys.stderr)
         return 1
 
     edges: list[tuple[str, str]] = []
@@ -978,7 +1060,10 @@ def cmd_deps(index: dict[str, MacroDef], name: str, mermaid: bool = False,
 
     if not edges:
         print(f"semacro: '{name}' does not call any other macros", file=sys.stderr)
-        print(f"  To see what calls '{name}', try: semacro callers {name}", file=sys.stderr)
+        print(
+            f"  To see what calls '{name}', try: semacro callers {name}",
+            file=sys.stderr,
+        )
         return 0
 
     if mermaid:
@@ -986,11 +1071,11 @@ def cmd_deps(index: dict[str, MacroDef], name: str, mermaid: bool = False,
         for caller, callee in edges:
             print(f"    {caller} --> {callee}")
     else:
-        print(f"digraph \"{name}\" {{")
+        print(f'digraph "{name}" {{')
         print("    rankdir=LR;")
-        print(f"    node [shape=box, fontname=\"monospace\"];")
+        print(f'    node [shape=box, fontname="monospace"];')
         for caller, callee in edges:
-            print(f"    \"{caller}\" -> \"{callee}\";")
+            print(f'    "{caller}" -> "{callee}";')
         print("}")
 
     return 0
@@ -1063,9 +1148,11 @@ _INIT_FC_TEMPLATE = """\
 
 def cmd_init(name: str, output_dir: str = ".") -> int:
     """Generate starter .te / .if / .fc files for a new confined daemon."""
-    if not re.match(r'^[a-z][a-z0-9_]*$', name):
-        print(f"semacro: invalid module name '{name}' — use lowercase letters, digits, and underscores",
-              file=sys.stderr)
+    if not re.match(r"^[a-z][a-z0-9_]*$", name):
+        print(
+            f"semacro: invalid module name '{name}' — use lowercase letters, digits, and underscores",
+            file=sys.stderr,
+        )
         return 1
 
     out = Path(output_dir)
@@ -1091,6 +1178,7 @@ def cmd_init(name: str, output_dir: str = ".") -> int:
 
 # --- CLI ---
 
+
 def _read_arg(value: str | None, command: str) -> str | None:
     """Resolve a positional argument: use the value if given, read one line
     from stdin if it's piped and value is None or '-', or error out."""
@@ -1100,7 +1188,10 @@ def _read_arg(value: str | None, command: str) -> str | None:
         line = sys.stdin.readline().strip()
         if line:
             return line
-    print(f"semacro {command}: missing required argument (provide it or pipe via stdin)", file=sys.stderr)
+    print(
+        f"semacro {command}: missing required argument (provide it or pipe via stdin)",
+        file=sys.stderr,
+    )
     return None
 
 
@@ -1111,34 +1202,39 @@ def main() -> int:
         prog="semacro",
         description="Explore and expand SELinux policy macros, interfaces, and templates.",
         epilog="Examples:\n"
-               "  semacro lookup files_pid_filetrans                          Show raw definition\n"
-               "  semacro lookup -e \"files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)\"  Expand tree\n"
-               "  semacro lookup -r \"files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)\"  Flat rules\n"
-               "  semacro find \"pid_filetrans\"                                Search by pattern\n"
-               "  semacro list --category kernel                              List kernel macros\n"
-               "  semacro callers filetrans_pattern                           Reverse lookup\n"
-               "  semacro which ntpd_t httpd_log_t read                       Find granting macro\n"
-               "  semacro telookup myapp.te                                   Expand a .te file\n"
-               "  semacro deps files_pid_filetrans                             Dependency graph\n"
-               "  semacro init myapp                                          Policy skeleton\n"
-               "\n"
-               "Policy path resolution (highest priority first):\n"
-               "  1. --include-path flag\n"
-               "  2. SEMACRO_INCLUDE_PATH environment variable\n"
-               "  3. /usr/share/selinux/devel/include (requires selinux-policy-devel)",
+        "  semacro lookup files_pid_filetrans                          Show raw definition\n"
+        '  semacro lookup -e "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)"  Expand tree\n'
+        '  semacro lookup -r "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)"  Flat rules\n'
+        '  semacro find "pid_filetrans"                                Search by pattern\n'
+        "  semacro list --category kernel                              List kernel macros\n"
+        "  semacro callers filetrans_pattern                           Reverse lookup\n"
+        "  semacro which ntpd_t httpd_log_t read                       Find granting macro\n"
+        "  semacro telookup myapp.te                                   Expand a .te file\n"
+        "  semacro deps files_pid_filetrans                             Dependency graph\n"
+        "  semacro init myapp                                          Policy skeleton\n"
+        "\n"
+        "Policy path resolution (highest priority first):\n"
+        "  1. --include-path flag\n"
+        "  2. SEMACRO_INCLUDE_PATH environment variable\n"
+        "  3. /usr/share/selinux/devel/include (requires selinux-policy-devel)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
-        "--version", "-V", action="version", version=f"%(prog)s {__version__}",
+        "--version",
+        "-V",
+        action="version",
+        version=f"%(prog)s {__version__}",
     )
     parser.add_argument(
-        "--no-color", action="store_true",
+        "--no-color",
+        action="store_true",
         help="Disable colored output",
     )
     parser.add_argument(
-        "--include-path", metavar="DIR",
+        "--include-path",
+        metavar="DIR",
         help="Path to SELinux policy include directory "
-             "(overrides SEMACRO_INCLUDE_PATH env var and default path)",
+        "(overrides SEMACRO_INCLUDE_PATH env var and default path)",
     )
 
     sub = parser.add_subparsers(dest="command")
@@ -1149,56 +1245,95 @@ def main() -> int:
         help="Show or expand a macro definition",
         description="Show a macro definition, optionally with argument substitution and recursive expansion.",
         epilog="Examples:\n"
-               "  semacro lookup files_pid_filetrans\n"
-               "      Show raw definition with $1, $2, etc.\n\n"
-               "  semacro lookup \"files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)\"\n"
-               "      Show definition with arguments substituted\n\n"
-               "  semacro lookup -e \"files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)\"\n"
-               "      Recursively expand nested macros into a tree of policy rules.\n"
-               "      Permission-set defines (search_dir_perms, etc.) are resolved inline.\n\n"
-               "  semacro lookup -r \"apache_read_log(mysqld_t)\"\n"
-               "      Flat deduplicated policy rules, ready to paste into a .te file.\n\n"
-               "  semacro lookup -e -d 1 \"files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)\"\n"
-               "      Expand only one level deep\n\n"
-               "  echo \"files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)\" | semacro lookup -r\n"
-               "      Read macro call from stdin (useful in scripts)",
+        "  semacro lookup files_pid_filetrans\n"
+        "      Show raw definition with $1, $2, etc.\n\n"
+        '  semacro lookup "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)"\n'
+        "      Show definition with arguments substituted\n\n"
+        '  semacro lookup -e "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)"\n'
+        "      Recursively expand nested macros into a tree of policy rules.\n"
+        "      Permission-set defines (search_dir_perms, etc.) are resolved inline.\n\n"
+        '  semacro lookup -r "apache_read_log(mysqld_t)"\n'
+        "      Flat deduplicated policy rules, ready to paste into a .te file.\n\n"
+        '  semacro lookup -e -d 1 "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)"\n'
+        "      Expand only one level deep\n\n"
+        '  echo "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)" | semacro lookup -r\n'
+        "      Read macro call from stdin (useful in scripts)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p_lookup.add_argument("name", nargs="?", default=None,
-                          help="Macro name or call — e.g. files_pid_filetrans or \"files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)\". "
-                               "Use - to read from stdin.")
+    p_lookup.add_argument(
+        "name",
+        nargs="?",
+        default=None,
+        help='Macro name or call — e.g. files_pid_filetrans or "files_pid_filetrans(ntpd_t, ntpd_var_run_t, file)". '
+        "Use - to read from stdin.",
+    )
     mode = p_lookup.add_mutually_exclusive_group()
-    mode.add_argument("-e", "--expand", action="store_true", help="Recursively expand nested macros into a tree of final policy rules")
-    mode.add_argument("-r", "--rules", action="store_true", help="Output flat deduplicated policy rules (copy-paste ready for .te files)")
-    p_lookup.add_argument("-d", "--depth", type=int, default=DEFAULT_MAX_DEPTH,
-                          help=f"Max expansion depth (default: {DEFAULT_MAX_DEPTH})")
+    mode.add_argument(
+        "-e",
+        "--expand",
+        action="store_true",
+        help="Recursively expand nested macros into a tree of final policy rules",
+    )
+    mode.add_argument(
+        "-r",
+        "--rules",
+        action="store_true",
+        help="Output flat deduplicated policy rules (copy-paste ready for .te files)",
+    )
+    p_lookup.add_argument(
+        "-d",
+        "--depth",
+        type=int,
+        default=DEFAULT_MAX_DEPTH,
+        help=f"Max expansion depth (default: {DEFAULT_MAX_DEPTH})",
+    )
 
     # find
     p_find = sub.add_parser(
         "find",
         help="Search for macros by name or by permissions",
         description="Search for macros by name regex, or find permission-set defines "
-                    "that contain specific permissions.",
+        "that contain specific permissions.",
         epilog="Examples:\n"
-               "  semacro find files_pid\n"
-               "      Find macros with 'files_pid' in the name\n\n"
-               "  semacro find --perms \"getattr read open\"\n"
-               "      Find defines containing all listed permissions\n\n"
-               "  semacro find --perms read\n"
-               "      Find all defines that include the 'read' permission",
+        "  semacro find files_pid\n"
+        "      Find macros with 'files_pid' in the name\n\n"
+        '  semacro find --perms "getattr read open"\n'
+        "      Find defines containing all listed permissions\n\n"
+        "  semacro find --perms read\n"
+        "      Find all defines that include the 'read' permission",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p_find.add_argument("pattern", nargs="?", default=None,
-                        help="Regex pattern to match against macro names. Use - to read from stdin.")
-    p_find.add_argument("-p", "--perms", metavar="PERMS",
-                        help="Find defines whose value contains all listed permissions "
-                             "(space-separated, order-independent)")
+    p_find.add_argument(
+        "pattern",
+        nargs="?",
+        default=None,
+        help="Regex pattern to match against macro names. Use - to read from stdin.",
+    )
+    p_find.add_argument(
+        "-p",
+        "--perms",
+        metavar="PERMS",
+        help="Find defines whose value contains all listed permissions "
+        "(space-separated, order-independent)",
+    )
 
     # list
     p_list = sub.add_parser("list", help="List available macros")
     p_list.add_argument(
-        "--category", "-c",
-        choices=["kernel", "system", "admin", "apps", "roles", "services", "contrib", "distributed", "support", "all"],
+        "--category",
+        "-c",
+        choices=[
+            "kernel",
+            "system",
+            "admin",
+            "apps",
+            "roles",
+            "services",
+            "contrib",
+            "distributed",
+            "support",
+            "all",
+        ],
         default="all",
         help="Filter by policy category (default: all)",
     )
@@ -1209,61 +1344,93 @@ def main() -> int:
         help="Find which macros call a given macro (reverse lookup)",
         description="Scan the policy index and report every macro that directly calls the given macro.",
         epilog="Examples:\n"
-               "  semacro callers filetrans_pattern\n"
-               "      Find all macros that call filetrans_pattern\n\n"
-               "  semacro callers manage_files_pattern\n"
-               "      See who uses manage_files_pattern",
+        "  semacro callers filetrans_pattern\n"
+        "      Find all macros that call filetrans_pattern\n\n"
+        "  semacro callers manage_files_pattern\n"
+        "      See who uses manage_files_pattern",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p_callers.add_argument("name", nargs="?", default=None,
-                           help="Macro name to find callers for. Use - to read from stdin.")
+    p_callers.add_argument(
+        "name",
+        nargs="?",
+        default=None,
+        help="Macro name to find callers for. Use - to read from stdin.",
+    )
 
     # which
     p_which = sub.add_parser(
         "which",
         help="Find macros that grant a specific access",
         description="Search for macros that would produce allow rules or type_transitions "
-                    "matching the given access parameters.",
+        "matching the given access parameters.",
         epilog="Examples:\n"
-               "  semacro which ntpd_t httpd_log_t read\n"
-               "      Find macros granting ntpd_t read access to httpd_log_t\n\n"
-               "  semacro which ntpd_t httpd_log_t \"read write\" --class file\n"
-               "      Require both perms on file class\n\n"
-               "  semacro which -T ntpd_t var_run_t ntpd_var_run_t\n"
-               "      Find macros creating type_transition to ntpd_var_run_t",
+        "  semacro which ntpd_t httpd_log_t read\n"
+        "      Find macros granting ntpd_t read access to httpd_log_t\n\n"
+        '  semacro which ntpd_t httpd_log_t "read write" --class file\n'
+        "      Require both perms on file class\n\n"
+        "  semacro which -T ntpd_t var_run_t ntpd_var_run_t\n"
+        "      Find macros creating type_transition to ntpd_var_run_t",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p_which.add_argument("source", help="Source domain type (e.g. ntpd_t)")
-    p_which.add_argument("target", help="Target type (e.g. httpd_log_t) or parent type for transitions")
-    p_which.add_argument("third", help="Permission(s) for AV rules, or new type for transitions. "
-                         "Quote multiple perms: \"read write\"")
-    p_which.add_argument("-T", "--transition", action="store_true",
-                         help="Search for type_transition rules instead of allow rules")
-    p_which.add_argument("-C", "--class", dest="obj_class", metavar="CLASS",
-                         help="Filter by object class (e.g. file, dir, sock_file)")
-    p_which.add_argument("-N", "--name", dest="trans_name", metavar="FILENAME",
-                         help="Filter by named transition filename (only with -T)")
+    p_which.add_argument(
+        "target", help="Target type (e.g. httpd_log_t) or parent type for transitions"
+    )
+    p_which.add_argument(
+        "third",
+        help="Permission(s) for AV rules, or new type for transitions. "
+        'Quote multiple perms: "read write"',
+    )
+    p_which.add_argument(
+        "-T",
+        "--transition",
+        action="store_true",
+        help="Search for type_transition rules instead of allow rules",
+    )
+    p_which.add_argument(
+        "-C",
+        "--class",
+        dest="obj_class",
+        metavar="CLASS",
+        help="Filter by object class (e.g. file, dir, sock_file)",
+    )
+    p_which.add_argument(
+        "-N",
+        "--name",
+        dest="trans_name",
+        metavar="FILENAME",
+        help="Filter by named transition filename (only with -T)",
+    )
 
     # telookup
     p_telookup = sub.add_parser(
         "telookup",
         help="Expand all macros in a .te policy file",
         description="Read a .te file, expand every macro call, and output the full set "
-                    "of final policy rules.",
+        "of final policy rules.",
         epilog="Examples:\n"
-               "  semacro telookup myapp.te\n"
-               "      Output flat merged rules for the module\n\n"
-               "  semacro telookup -e myapp.te\n"
-               "      Output expansion trees for each macro call\n\n"
-               "  cat myapp.te | semacro telookup -\n"
-               "      Read from stdin",
+        "  semacro telookup myapp.te\n"
+        "      Output flat merged rules for the module\n\n"
+        "  semacro telookup -e myapp.te\n"
+        "      Output expansion trees for each macro call\n\n"
+        "  cat myapp.te | semacro telookup -\n"
+        "      Read from stdin",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p_telookup.add_argument("filepath", help="Path to .te file (use - for stdin)")
-    p_telookup.add_argument("-d", "--depth", type=int, default=DEFAULT_MAX_DEPTH,
-                            help=f"Max expansion depth (default: {DEFAULT_MAX_DEPTH})")
-    p_telookup.add_argument("-e", "--expand", action="store_true",
-                            help="Output expansion trees instead of flat rules")
+    p_telookup.add_argument(
+        "-d",
+        "--depth",
+        type=int,
+        default=DEFAULT_MAX_DEPTH,
+        help=f"Max expansion depth (default: {DEFAULT_MAX_DEPTH})",
+    )
+    p_telookup.add_argument(
+        "-e",
+        "--expand",
+        action="store_true",
+        help="Output expansion trees instead of flat rules",
+    )
 
     # deps
     p_deps = sub.add_parser(
@@ -1271,47 +1438,65 @@ def main() -> int:
         help="Show macro dependency graph in DOT or Mermaid format",
         description="Walk the call tree of a macro and output a dependency graph.",
         epilog="Examples:\n"
-               "  semacro deps files_pid_filetrans\n"
-               "      Output DOT format (pipe to 'dot -Tpng -o graph.png')\n\n"
-               "  semacro deps --mermaid files_pid_filetrans\n"
-               "      Output Mermaid format (paste into GitHub markdown)\n\n"
-               "  semacro deps -d 2 apache_read_log\n"
-               "      Limit to 2 levels of depth",
+        "  semacro deps files_pid_filetrans\n"
+        "      Output DOT format (pipe to 'dot -Tpng -o graph.png')\n\n"
+        "  semacro deps --mermaid files_pid_filetrans\n"
+        "      Output Mermaid format (paste into GitHub markdown)\n\n"
+        "  semacro deps -d 2 apache_read_log\n"
+        "      Limit to 2 levels of depth",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p_deps.add_argument("name", nargs="?", default=None,
-                        help="Macro to graph dependencies for. Use - to read from stdin.")
-    p_deps.add_argument("-m", "--mermaid", action="store_true",
-                        help="Output Mermaid format instead of DOT (Graphviz)")
-    p_deps.add_argument("-d", "--depth", type=int, default=DEFAULT_MAX_DEPTH,
-                        help=f"Max depth to follow calls (default: {DEFAULT_MAX_DEPTH})")
+    p_deps.add_argument(
+        "name",
+        nargs="?",
+        default=None,
+        help="Macro to graph dependencies for. Use - to read from stdin.",
+    )
+    p_deps.add_argument(
+        "-m",
+        "--mermaid",
+        action="store_true",
+        help="Output Mermaid format instead of DOT (Graphviz)",
+    )
+    p_deps.add_argument(
+        "-d",
+        "--depth",
+        type=int,
+        default=DEFAULT_MAX_DEPTH,
+        help=f"Max depth to follow calls (default: {DEFAULT_MAX_DEPTH})",
+    )
 
     # init
     p_init = sub.add_parser(
         "init",
         help="Generate starter .te/.if/.fc files for a new policy module",
         description="Create a policy skeleton for a new confined daemon with "
-                    "standard type declarations, logging, and PID file handling.",
+        "standard type declarations, logging, and PID file handling.",
         epilog="Examples:\n"
-               "  semacro init myapp\n"
-               "      Creates myapp.te, myapp.if, myapp.fc in current directory\n\n"
-               "  semacro init myapp -o /path/to/policy/\n"
-               "      Creates files in the specified directory",
+        "  semacro init myapp\n"
+        "      Creates myapp.te, myapp.if, myapp.fc in current directory\n\n"
+        "  semacro init myapp -o /path/to/policy/\n"
+        "      Creates files in the specified directory",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p_init.add_argument("name", help="Module name (lowercase, e.g. myapp)")
-    p_init.add_argument("-o", "--output-dir", default=".",
-                        help="Directory to create files in (default: current directory)")
+    p_init.add_argument(
+        "-o",
+        "--output-dir",
+        default=".",
+        help="Directory to create files in (default: current directory)",
+    )
 
     args, unknown = parser.parse_known_args()
 
     if unknown:
         cmd = getattr(args, "command", None)
         if cmd:
-            print(f"semacro {cmd}: unrecognized arguments: {' '.join(unknown)}",
-                  file=sys.stderr)
-            print(f"  Run 'semacro {cmd} -h' to see valid options.",
-                  file=sys.stderr)
+            print(
+                f"semacro {cmd}: unrecognized arguments: {' '.join(unknown)}",
+                file=sys.stderr,
+            )
+            print(f"  Run 'semacro {cmd} -h' to see valid options.", file=sys.stderr)
         else:
             parser.parse_args()
         return 2
@@ -1327,7 +1512,11 @@ def main() -> int:
     if args.no_color or not sys.stdout.isatty():
         _use_color = False
 
-    include_path = args.include_path or os.environ.get("SEMACRO_INCLUDE_PATH") or detect_include_path()
+    include_path = (
+        args.include_path
+        or os.environ.get("SEMACRO_INCLUDE_PATH")
+        or detect_include_path()
+    )
     if not include_path:
         print(
             "semacro: cannot find SELinux policy include directory.\n"
@@ -1371,7 +1560,9 @@ def main() -> int:
         if args.depth < 1:
             print("semacro: --depth must be at least 1", file=sys.stderr)
             return 1
-        return cmd_lookup(index, name, expand=args.expand, rules=args.rules, max_depth=args.depth)
+        return cmd_lookup(
+            index, name, expand=args.expand, rules=args.rules, max_depth=args.depth
+        )
     elif args.command == "find":
         if args.perms:
             return cmd_find(index, perms=args.perms)
@@ -1390,15 +1581,22 @@ def main() -> int:
         if args.trans_name and not args.transition:
             print("semacro: --name only applies with --transition", file=sys.stderr)
             return 1
-        return cmd_which(index, args.source, args.target, args.third,
-                         transition=args.transition, obj_class=args.obj_class,
-                         trans_name=args.trans_name)
+        return cmd_which(
+            index,
+            args.source,
+            args.target,
+            args.third,
+            transition=args.transition,
+            obj_class=args.obj_class,
+            trans_name=args.trans_name,
+        )
     elif args.command == "telookup":
         if args.depth < 1:
             print("semacro: --depth must be at least 1", file=sys.stderr)
             return 1
-        return cmd_telookup(index, args.filepath, max_depth=args.depth,
-                            tree_mode=args.expand)
+        return cmd_telookup(
+            index, args.filepath, max_depth=args.depth, tree_mode=args.expand
+        )
     elif args.command == "deps":
         name = _read_arg(args.name, "deps")
         if name is None:
