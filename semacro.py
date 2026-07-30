@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """semacro - explore and expand SELinux policy macros, interfaces, and templates."""
 
 __version__ = "0.2.0"
