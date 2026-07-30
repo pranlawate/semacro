@@ -3,7 +3,7 @@ name: Build RPM and attach to Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 permissions:
   contents: write
@@ -29,7 +29,7 @@ jobs:
           mkdir -p ~/rpmbuild/SOURCES
           tar czf ~/rpmbuild/SOURCES/semacro-${VERSION}.tar.gz \
               --transform "s,^,semacro-${VERSION}/," \
-              --exclude='.git' --exclude='tests' --exclude='__pycache__' \
+              --exclude='.git' --exclude='__pycache__' \
               *
 
       - name: Build RPM
